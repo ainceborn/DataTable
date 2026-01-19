@@ -1,5 +1,6 @@
 plugins {
     libPlugins(isComposeEnable = true)
+    id("maven-publish")
 }
 
 android {
@@ -14,4 +15,17 @@ dependencies {
     androidLifecycle()
     kotlinToolsApi()
     composeLibs()
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = Metadata.Id
+                artifactId = "DataTable"
+                version = Metadata.versionName
+                from(components["release"])
+            }
+        }
+    }
 }
