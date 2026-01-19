@@ -22,7 +22,7 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 groupId = Metadata.Id
-                artifactId = "DataTable"
+                artifactId = "data-table"
                 version = Metadata.versionName
                 from(components["release"])
             }
