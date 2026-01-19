@@ -12,9 +12,6 @@ object Metadata {
     object Versions {
         const val kotlinVersion = "2.1.20"
         val javaVersion = JavaVersion.VERSION_11
-
-        const val fioriSDKVersion="25.8.3"
-        const val gsonVersion = "2.10.1"
         const val koinVersion = "4.0.1"
         const val materialVersion = "1.12.0"
 
@@ -28,11 +25,6 @@ object Metadata {
 
         const val kotlinToolsVersion = "1.10.1"
         const val kotlinSerializationVersion = "1.8.0"
-        const val coroutinesToolsVersion = "1.9.0"
-
-        const val guavaVersion = "32.1.2-android"
-        const val slf4jVersion = "2.0.12"
-        const val okhttp3Version = "4.12.0"
 
         const val junitVersion="4.13.2"
         const val mockitoVersion="5.12.0"
