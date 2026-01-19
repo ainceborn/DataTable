@@ -7,8 +7,6 @@ import Metadata.Versions.archLifecycleVersion
 import Metadata.Versions.composeBomVersion
 import Metadata.Versions.constraintlayoutToolsVersion
 import Metadata.Versions.espressoVersion
-import Metadata.Versions.gsonVersion
-import Metadata.Versions.guavaVersion
 import Metadata.Versions.junitExtVersion
 import Metadata.Versions.junitVersion
 import Metadata.Versions.koinVersion
@@ -19,9 +17,7 @@ import Metadata.Versions.materialVersion
 import Metadata.Versions.mockKVersion
 import Metadata.Versions.mockitoKotlinVersion
 import Metadata.Versions.mockitoVersion
-import Metadata.Versions.okhttp3Version
 import Metadata.Versions.robolectricVersion
-import Metadata.Versions.slf4jVersion
 import Metadata.Versions.supportTestRunnerVersion
 import Metadata.Versions.testRulesVersion
 import Metadata.Versions.uiAutomatorVersion
