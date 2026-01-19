@@ -2,6 +2,7 @@ plugins {
     libPlugins(isComposeEnable = true)
     id("maven-publish")
 }
+group = "com.github.ainceborn"
 
 android {
     defineLib(
@@ -21,10 +22,10 @@ afterEvaluate {
     publishing {
         publications {
             create<MavenPublication>("release") {
-                groupId = Metadata.Id
+                from(components["release"])
+                groupId = "com.github.ainceborn"
                 artifactId = "data-table"
                 version = Metadata.versionName
-                from(components["release"])
             }
         }
     }
