@@ -6,12 +6,12 @@ object Metadata {
     const val compileSdk = 35
     const val targetSdk = 35
     const val versionCode = 2
-    const val versionName = "1.0.0"
+    const val versionName = "1.0.1"
     const val buildToolsVersion = "35.0.1"
 
     object Versions {
         const val kotlinVersion = "2.1.20"
-        val javaVersion = JavaVersion.VERSION_11
+        val javaVersion = JavaVersion.VERSION_17
         const val koinVersion = "4.0.1"
         const val materialVersion = "1.12.0"
 
