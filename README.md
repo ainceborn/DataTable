@@ -2,7 +2,7 @@
 
 ## 🎨 Customization Options
 
-The `StickyMatrix` composable provides several parameters to customize its appearance and behavior:
+The `StickyMatrix` /  `DataTable` composable provides several parameters to customize its appearance and behavior:
 
 | Parameter                    | Description                                                                                  |
 |------------------------------|----------------------------------------------------------------------------------------------|
