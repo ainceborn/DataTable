@@ -1,4 +1,21 @@
-[![](https://jitpack.io/v/ainceborn/DataTable.svg)](https://jitpack.io/#ainceborn/DataTable)
+## 🎨 DataTable [Compose] [![](https://jitpack.io/v/ainceborn/DataTable.svg)](https://jitpack.io/#ainceborn/DataTable)
+
+```
+dependencyResolutionManagement {
+		repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+		repositories {
+			mavenCentral()
+			maven { url = uri("https://jitpack.io") }
+		}
+	}
+
+```
+
+```
+  dependencies {
+	   implementation("com.github.ainceborn:DataTable:1.0.2")
+	}
+```
 
 ## 🎨 Customization Options
 
