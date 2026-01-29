@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -306,7 +309,7 @@ fun DataTable(
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
     onCellLongPress: ((Row)-> Unit)? = null,
-    onCellAction: ((Cell)-> Unit)? = null,
+    onCellAction: ((Cell, CellAction)-> Unit)? = null,
 ) {
     val horizontalScrollState = rememberScrollState()
     val verticalScrollState = rememberLazyListState()
@@ -347,18 +350,25 @@ fun DataTable(
             }
         }
 
+        // TODO migrate to vertical scroll for static content
+        /*Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            // Top-Left Static Cell
+            table.rows.fastForEach {
+                val row = it
+
+            }
+        }*/
         // Rows
         LazyColumn(
             state = verticalScrollState,
             modifier = Modifier.fillMaxSize(),
         ) {
             table.stickyRows
-            items(table.rows.size) { rowIndex ->
-                val row = table.rows[rowIndex]
 
+            items(items = table.rows, key = { item -> item.uuid }){ row ->
                 Row {
                     if(table.stickyRows.isEmpty().not()){
-                        val stickyRow = table.stickyRows[rowIndex]
+                        val stickyRow = table.stickyRows[row.index]
 
                         Row {
                             stickyRow.cells.forEach { cell ->
@@ -375,10 +385,12 @@ fun DataTable(
                                         ),
                                     contentAlignment = rowHeaderContentAlignment,
                                 ) {
-                                    cell.Render(
-                                        cellStyle = cellStyle,
-                                        onCellAction = onCellAction
-                                    )
+                                    key(cell.coordinate, cell.uuid) {
+                                        cell.Render(
+                                            cellStyle = cellStyle,
+                                            onCellAction = onCellAction
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
                     defaultCellHeight = 50.dp,
                     horizontalCellDividerColor = Color.Black,
                     verticalCellDividerColor = Color.Black,
-                    columnHeaderDividerColor = Color.Black
+                    columnHeaderDividerColor = Color.Black,
                 )
             }
 
