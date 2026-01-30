@@ -11,10 +11,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.rainc.compose.datatable.ColumnAction
 import com.rainc.compose.datatable.DataTable
+import com.rainc.compose.datatable.ResourceResolver
 import com.rainc.compose.datatable.cell.ButtonCell
 import com.rainc.compose.datatable.cell.TextCell
 import com.rainc.compose.datatable.model.Coordinate
+import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.Row
 import com.rainc.compose.datatable.model.Table
 
@@ -24,9 +27,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        ResourceResolver.attachProvider(TableResourceProvider)
 
         val table = Table(
-            columnHeaders = listOf("Column 1", "Column 2", "Column 3", "Column 4", "Column 5", "Column 6"),
+            columnHeaders =
+                buildList {
+                    for (i in 1..6) {
+                        Header(index = i-1, title ="Column $i", action = when(i){
+                            2,3,4 ->ColumnAction.Sort()
+                            else -> ColumnAction.None
+                        }).also { add(it) }
+                    }
+                }
+            ,
             rows = listOf(
                 Row(
                     index = 0,
@@ -123,11 +136,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             enableEdgeToEdge()
             Scaffold(modifier = Modifier.fillMaxSize().padding(top = 24.dp)) { innerPadding ->
-
                 DataTable(
+                    modifier = Modifier.padding(innerPadding),
                     table = table,
-                    defaultCellWidth = 100.dp,
-                    defaultCellHeight = 50.dp,
                     horizontalCellDividerColor = Color.Black,
                     verticalCellDividerColor = Color.Black,
                     columnHeaderDividerColor = Color.Black,
