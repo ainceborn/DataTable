@@ -144,8 +144,6 @@ fun DataTable(
             state = verticalScrollState,
             modifier = Modifier.fillMaxSize(),
         ) {
-            table.stickyRows
-
             items(items = table.rows, key = { item -> item.uuid }){ row ->
                 Row {
                     var columnIndex = 0

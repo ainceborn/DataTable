@@ -13,7 +13,7 @@ dependencyResolutionManagement {
 
 ```
   dependencies {
-	   implementation("com.github.ainceborn:DataTable:1.0.2")
+	   implementation("com.github.ainceborn:DataTable:1.0.3")
 	}
 ```
 
