@@ -44,7 +44,7 @@ fun ColumnHeader(
                 IconButton(
                     modifier = Modifier.size(32.dp),
                     onClick = {
-                        onHeaderActionTriggered?.invoke(header, header.action)
+                        onHeaderActionTriggered?.invoke(header, header.action.copy(mode = header.action.mode.transition()))
                     },
                     content = {
                         Icon(

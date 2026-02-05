@@ -8,14 +8,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.ColumnAction
 import com.rainc.compose.datatable.DataTable
 import com.rainc.compose.datatable.ResourceResolver
 import com.rainc.compose.datatable.cell.ButtonCell
+import com.rainc.compose.datatable.cell.RadioButtonCell
+import com.rainc.compose.datatable.cell.SegmentControl
+import com.rainc.compose.datatable.cell.SwitchCell
 import com.rainc.compose.datatable.cell.TextCell
+import com.rainc.compose.datatable.defaultTableConfig
+import com.rainc.compose.datatable.model.ChipGroup
 import com.rainc.compose.datatable.model.Coordinate
 import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.Row
@@ -133,15 +143,114 @@ class MainActivity : ComponentActivity() {
             stickyRows = listOf()
         )
 
+
         setContent {
             enableEdgeToEdge()
-            Scaffold(modifier = Modifier.fillMaxSize().padding(top = 24.dp)) { innerPadding ->
+
+            var tableState by remember { mutableStateOf(table) }
+
+            Scaffold(modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 24.dp)) { innerPadding ->
                 DataTable(
                     modifier = Modifier.padding(innerPadding),
-                    table = table,
+                    table = tableState,
+                    config = defaultTableConfig(),
                     horizontalCellDividerColor = Color.Black,
                     verticalCellDividerColor = Color.Black,
                     columnHeaderDividerColor = Color.Black,
+                    onCellAction = { action ->
+                        when(action){
+                            is CellAction.ButtonPressed -> {
+                                when(action.cell){
+                                    is ButtonCell -> {
+                                        // TODO: Handle button press action
+                                    }
+                                    else -> return@DataTable
+                                }
+                            }
+                            is CellAction.NewDateSelected -> {
+                                // TODO: Handle new date selected action
+                            }
+                            is CellAction.SegmentStateChange.StringSegmentChange -> {
+                                when(action.cell){
+                                    is SegmentControl -> {
+                                       // TODO: Handle segment control state change
+                                    } else -> return@DataTable
+                                }
+                            }
+                            is CellAction.SegmentStateChange.SerializableSegmentChange -> {
+                                // TODO: Handle serializable segment change
+                            }
+                            is CellAction.ToggleBoolean -> {
+                                when(action.cell){
+                                    is RadioButtonCell -> {
+                                        // TODO: Handle radio button toggle action
+                                    }
+                                    is SwitchCell -> {
+                                        // TODO: Handle switch toggle action
+                                    }
+                                    else -> return@DataTable
+                                }
+                            }
+                            is CellAction.UnspecifiedAction -> {
+                                // TODO: Handle unspecified action
+                            }
+                            is CellAction.UpdateText -> {
+                                // TODO: Handle text update action
+                            }
+                        }
+                    },
+                    onHeaderActionTriggered = { header, columnAction ->
+                        when (columnAction) {
+                            is ColumnAction.Sort -> {
+                                when (columnAction.mode) {
+                                    ColumnAction.Sort.SortMode.ASCENDING -> {
+                                        val sortedRows = tableState.rows.sortedBy { row ->
+                                           row.cells.get(header.index).sortKeyValue
+                                        }
+                                        tableState = tableState.copy(
+                                            columnHeaders = tableState.columnHeaders
+                                                .toMutableList()
+                                                .run {
+                                                    this[header.index] = this[header.index].copy(action = ColumnAction.Sort(mode = columnAction.mode))
+                                                    this
+                                                },
+                                            rows = sortedRows
+                                        )
+                                    }
+                                    ColumnAction.Sort.SortMode.DESCENDING -> {
+                                        val sortedRows = tableState.rows.sortedByDescending { row ->
+                                            row.cells[header.index].sortKeyValue
+                                        }
+                                        tableState = tableState.copy(
+                                            columnHeaders = tableState.columnHeaders
+                                                .toMutableList()
+                                                .run {
+                                                    this[header.index] = this[header.index].copy(action = ColumnAction.Sort(mode = columnAction.mode))
+                                                    this
+                                                },
+                                            rows = sortedRows
+                                        )
+                                    }
+                                    ColumnAction.Sort.SortMode.NONE -> {
+                                        tableState = tableState.copy(
+                                            columnHeaders = tableState.columnHeaders
+                                                .toMutableList()
+                                                .run {
+                                                    this[header.index] = this[header.index].copy(action = ColumnAction.Sort(mode = columnAction.mode))
+                                                    this
+                                                },
+                                            rows = table.rows.sortedBy { it.index })
+                                    }
+                                }
+                            }
+
+                            is ColumnAction.Unspecialized -> TODO()
+                            ColumnAction.None -> TODO()
+
+                        }
+                    }
                 )
             }
 

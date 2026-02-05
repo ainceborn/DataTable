@@ -14,18 +14,19 @@ import java.util.UUID
 @Immutable
 data class SwitchCell(
     val value: Boolean,
+    override var sortKeyValue: String,
     override val coordinate: Coordinate,
     override val uuid: UUID  = UUID.randomUUID()
 ) : Cell  {
     @Composable
-    override fun Render(onCellAction: ((Cell, CellAction) -> Unit)?, cellStyle: CellStyle) {
+    override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         val isChecked = remember { mutableStateOf(value) }
 
         Switch(
             checked = isChecked.value,
             onCheckedChange = {
                 isChecked.value = it
-                onCellAction?.invoke(this, CellAction.ToggleBoolean(isChecked.value))
+                onCellAction?.invoke(CellAction.ToggleBoolean(isChecked.value, trigger = this))
             }
         )
 

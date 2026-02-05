@@ -18,10 +18,11 @@ import java.util.UUID
 data class SegmentControl(
     val data: ChipGroup<String>,
     override val coordinate: Coordinate,
+    override var sortKeyValue: String = data.chips.joinToString { "it.value - ${it.isSelected}" },
     override val uuid: UUID = UUID.randomUUID(),
 ) : Cell  {
     @Composable
-    override fun Render(onCellAction: ((Cell, CellAction) -> Unit)?, cellStyle: CellStyle) {
+    override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         var chips by remember { mutableStateOf(data.chips) }
 
         ChipGroup(
@@ -48,7 +49,7 @@ data class SegmentControl(
                     }
                 }
 
-                onCellAction?.invoke(this, CellAction.SegmentStateChange(data.copy(chips = chips)))
+                onCellAction?.invoke(CellAction.SegmentStateChange.StringSegmentChange(data.copy(chips = chips), trigger = this))
             }
         )
     }

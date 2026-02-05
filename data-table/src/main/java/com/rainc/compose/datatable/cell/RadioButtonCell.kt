@@ -17,16 +17,17 @@ import java.util.UUID
 data class RadioButtonCell(
     val value: Boolean,
     override val coordinate: Coordinate,
+    override var sortKeyValue: String = value.toString(),
     override val uuid: UUID = UUID.randomUUID()
 ) : Cell  {
     @Composable
-    override fun Render(onCellAction: ((Cell, CellAction) -> Unit)?, cellStyle: CellStyle) {
+    override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         var isEnabled by remember { mutableStateOf(value) }
         RadioButton(
             selected = isEnabled,
             onClick = {
                 isEnabled = !isEnabled
-                onCellAction?.invoke(this, CellAction.ToggleBoolean(isEnabled))
+                onCellAction?.invoke(CellAction.ToggleBoolean(isEnabled, trigger = this))
             }
         )
     }

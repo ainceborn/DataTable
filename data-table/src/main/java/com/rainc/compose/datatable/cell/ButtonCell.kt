@@ -14,16 +14,17 @@ import java.util.UUID
 data class ButtonCell(
     val buttonText:String,
     override val coordinate: Coordinate,
-    override val uuid: UUID = UUID.randomUUID()
+    override val sortKeyValue: String = buttonText,
+    override val uuid: UUID = UUID.randomUUID(),
 ) : Cell {
     @Composable
-    override fun Render(onCellAction: ((Cell, CellAction) -> Unit)?, cellStyle: CellStyle) {
+    override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         Button(
             content = {
                 Text(text = buttonText)
             },
             onClick = {
-                onCellAction?.invoke(this, CellAction.ButtonPressed)
+                onCellAction?.invoke(CellAction.ButtonPressed(trigger = this))
             }
         )
     }

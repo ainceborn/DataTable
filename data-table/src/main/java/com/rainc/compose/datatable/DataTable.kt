@@ -78,7 +78,7 @@ fun DataTable(
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
     onCellLongPress: ((Row)-> Unit)? = null,
-    onCellAction: ((Cell, CellAction)-> Unit)? = null,
+    onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null
 ) {
     val horizontalScrollState = rememberScrollState()
