@@ -25,11 +25,11 @@ import com.rainc.compose.datatable.cell.SegmentControl
 import com.rainc.compose.datatable.cell.SwitchCell
 import com.rainc.compose.datatable.cell.TextCell
 import com.rainc.compose.datatable.defaultTableConfig
-import com.rainc.compose.datatable.model.ChipGroup
 import com.rainc.compose.datatable.model.Coordinate
 import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.Row
 import com.rainc.compose.datatable.model.Table
+import com.rainc.compose.datatable.tools.sort
 
 class MainActivity : ComponentActivity() {
 
@@ -204,51 +204,13 @@ class MainActivity : ComponentActivity() {
                     onHeaderActionTriggered = { header, columnAction ->
                         when (columnAction) {
                             is ColumnAction.Sort -> {
-                                when (columnAction.mode) {
-                                    ColumnAction.Sort.SortMode.ASCENDING -> {
-                                        val sortedRows = tableState.rows.sortedBy { row ->
-                                           row.cells.get(header.index).sortKeyValue
-                                        }
-                                        tableState = tableState.copy(
-                                            columnHeaders = tableState.columnHeaders
-                                                .toMutableList()
-                                                .run {
-                                                    this[header.index] = this[header.index].copy(action = ColumnAction.Sort(mode = columnAction.mode))
-                                                    this
-                                                },
-                                            rows = sortedRows
-                                        )
-                                    }
-                                    ColumnAction.Sort.SortMode.DESCENDING -> {
-                                        val sortedRows = tableState.rows.sortedByDescending { row ->
-                                            row.cells[header.index].sortKeyValue
-                                        }
-                                        tableState = tableState.copy(
-                                            columnHeaders = tableState.columnHeaders
-                                                .toMutableList()
-                                                .run {
-                                                    this[header.index] = this[header.index].copy(action = ColumnAction.Sort(mode = columnAction.mode))
-                                                    this
-                                                },
-                                            rows = sortedRows
-                                        )
-                                    }
-                                    ColumnAction.Sort.SortMode.NONE -> {
-                                        tableState = tableState.copy(
-                                            columnHeaders = tableState.columnHeaders
-                                                .toMutableList()
-                                                .run {
-                                                    this[header.index] = this[header.index].copy(action = ColumnAction.Sort(mode = columnAction.mode))
-                                                    this
-                                                },
-                                            rows = table.rows.sortedBy { it.index })
-                                    }
-                                }
+                                tableState = tableState.sort(
+                                    header = header,
+                                    sortAction = columnAction
+                                )
                             }
-
                             is ColumnAction.Unspecialized -> TODO()
                             ColumnAction.None -> TODO()
-
                         }
                     }
                 )
