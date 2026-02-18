@@ -15,8 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -27,15 +27,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rainc.compose.datatable.model.Cell
 import com.rainc.compose.datatable.model.CellStyle
+import com.rainc.compose.datatable.model.DataUpdatePolicy
 import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.Row
 import com.rainc.compose.datatable.model.Table
 import com.rainc.compose.datatable.model.TableConfig
+import java.util.UUID
 
 /**
  * @param table 2D list of strings representing the grid content.
@@ -77,6 +77,7 @@ fun DataTable(
     horizontalCellDividerColor: Color? = null,
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
+    dataUpdatePolicy: DataUpdatePolicy = DataUpdatePolicy.NONE,
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null
@@ -88,6 +89,26 @@ fun DataTable(
         textStyle = dataTextStyle(),
         buttonStyle =buttonStyle
     )) }
+
+    val rowsIds = remember { mutableStateOf(setOf<UUID>()) }
+    val lastAction = remember { mutableStateOf<Pair<Header, ColumnAction>?>(null) }
+
+    LaunchedEffect(key1 = table.rows) {
+        val newRowsIds = table.rows.map { it.uuid }.toSet()
+
+        if(rowsIds.value == newRowsIds) return@LaunchedEffect
+
+        rowsIds.value = newRowsIds
+
+        when(dataUpdatePolicy){
+            DataUpdatePolicy.NONE -> return@LaunchedEffect
+            DataUpdatePolicy.RETRIGGER_LAST_COLUMN_ACTION -> {
+                lastAction.value?.let {
+                    onHeaderActionTriggered?.invoke(it.first, it.second)
+                }
+            }
+        }
+    }
 
     val headerCellStyle by remember { mutableStateOf(CellStyle(
         textStyle = columnHeaderTextStyle(),
@@ -124,7 +145,10 @@ fun DataTable(
                             modifier = Modifier.width(config.getColumnWidth(index).dp),
                             header = header,
                             cellStyle = headerCellStyle,
-                            onHeaderActionTriggered = onHeaderActionTriggered
+                            onHeaderActionTriggered ={ header, action->
+
+                                onHeaderActionTriggered?.invoke(header,action)
+                            }
                         )
                     }
                 }
