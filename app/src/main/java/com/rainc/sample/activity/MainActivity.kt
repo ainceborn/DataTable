@@ -43,10 +43,17 @@ class MainActivity : ComponentActivity() {
             columnHeaders =
                 buildList {
                     for (i in 1..6) {
-                        Header(index = i-1, title ="Column $i", action = when(i){
-                            2,3,4 ->ColumnAction.Sort()
-                            else -> ColumnAction.None
-                        }).also { add(it) }
+                        Header(
+                            index = i-1,
+                            title ="Column $i",
+                            action = when(i){
+                                2,3,4 ->ColumnAction.Sort()
+                                else -> ColumnAction.None
+                            },
+                            isStickyColumn = i == 1
+
+                        ).also { add(it) }
+
                     }
                 }
             ,
@@ -139,8 +146,7 @@ class MainActivity : ComponentActivity() {
                         TextCell("Cell 48", Coordinate(5, 7))
                     )
                 )
-            ),
-            stickyRows = listOf()
+            )
         )
 
 

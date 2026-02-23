@@ -5,6 +5,9 @@ import androidx.compose.runtime.Immutable
 @Immutable
 data class Table(
     val columnHeaders: List<Header>,
-    val stickyRows: List<Row>,
     val rows: List<Row>,
-)
+) {
+    fun getColumnWidth(columnIndex: Int): Int? {
+        return columnHeaders.getOrNull(columnIndex)?.config?.cellWidthInDp
+    }
+}

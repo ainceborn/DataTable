@@ -46,8 +46,12 @@ fun DependencyHandler.composeLibs() {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.material3.adaptive:adaptive")
     implementation("androidx.compose.ui:ui-tooling")
+
     implementation("androidx.activity:activity-compose:$activityComposeVersion")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$androidLifecycleVersion")
+
+    implementation("androidx.paging:paging-runtime:3.2.1")
+    implementation("androidx.paging:paging-compose:3.2.1")
 }
 
 fun DependencyHandler.apiComposeLibs() {
@@ -61,6 +65,8 @@ fun DependencyHandler.apiComposeLibs() {
     api("androidx.compose.ui:ui-tooling")
     api("androidx.activity:activity-compose:$activityComposeVersion")
     api("androidx.lifecycle:lifecycle-viewmodel-compose:$androidLifecycleVersion")
+    api("androidx.paging:paging-runtime")
+    api("androidx.paging:paging-compose")
 }
 
 
