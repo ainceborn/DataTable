@@ -3,6 +3,7 @@ package com.rainc.compose.datatable
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import com.rainc.compose.datatable.model.ButtonStyle
+import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.TableConfig
 
 @Composable
@@ -24,4 +25,8 @@ fun defaultTableConfig(
         defaultHeightInDp = cellHeight,
         defaultCellWidth = defaultCellWidth,
     )
+}
+
+fun List<Header>.getColumnWidth(columnIndex: Int): Int? {
+    return getOrNull(columnIndex)?.config?.cellWidthInDp
 }

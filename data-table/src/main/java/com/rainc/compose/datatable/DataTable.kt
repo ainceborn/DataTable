@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -290,7 +291,7 @@ fun PaginationDataTable(
 @Composable
 fun DataTable(
     modifier: Modifier = Modifier,
-    table: Table,
+    table: State<Table>,
     config: TableConfig = defaultTableConfig(),
     columnHeaderBackground: Color = Color.LightGray,
     columnHeaderContentAlignment: Alignment = Alignment.Center,
@@ -310,6 +311,9 @@ fun DataTable(
     onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null
 ) {
+    val columnHeaders by remember { derivedStateOf { table.value.columnHeaders } }
+
+
     val horizontalScrollState = rememberScrollState()
     val verticalScrollState = rememberLazyListState()
     val buttonStyle = getButtonStyle()
@@ -321,8 +325,8 @@ fun DataTable(
     val rowsIds = remember { mutableStateOf(setOf<UUID>()) }
     val lastAction = remember { mutableStateOf<Pair<Header, ColumnAction>?>(null) }
 
-    LaunchedEffect(key1 = table.rows) {
-        val newRowsIds = table.rows.map { it.uuid }.toSet()
+    LaunchedEffect(key1 = table.value.rows) {
+        val newRowsIds = table.value.rows.map { it.uuid }.toSet()
 
         if(rowsIds.value == newRowsIds) return@LaunchedEffect
 
@@ -347,15 +351,16 @@ fun DataTable(
 
     val stickyColumn by remember {
         derivedStateOf {
-            table.columnHeaders.mapIndexedNotNull { index, header ->
-                if(header.isStickyColumn) index else null }
+            columnHeaders.mapIndexedNotNull { index, header ->
+                index.takeIf { header.isStickyColumn }
+            }
         }
     }
 
     val columns by remember {
         derivedStateOf {
-            table.columnHeaders.mapIndexedNotNull { index, header ->
-                if (header.isStickyColumn.not()) index else null
+            columnHeaders.mapIndexedNotNull { index, header ->
+                index.takeIf { !header.isStickyColumn }
             }
         }
     }
@@ -365,8 +370,8 @@ fun DataTable(
         // Top Row (Static Top Left + Scrollable Headers)
         Row(modifier = Modifier.fillMaxWidth()) {
             stickyColumn.forEach { index ->
-                val width = table.getColumnWidth(index) ?: config.defaultCellWidth
-                val header = table.columnHeaders[index]
+                val width = columnHeaders.getColumnWidth(index) ?: config.defaultCellWidth
+                val header = columnHeaders[index]
 
                 ColumnHeader(
                     header = header,
@@ -388,8 +393,8 @@ fun DataTable(
                 modifier = Modifier.horizontalScroll(horizontalScrollState),
             ) {
                 columns.forEach { index ->
-                    val width = table.getColumnWidth(index) ?: config.defaultCellWidth
-                    val header = table.columnHeaders[index]
+                    val width = columnHeaders.getColumnWidth(index) ?: config.defaultCellWidth
+                    val header = columnHeaders[index]
 
                     ColumnHeader(
                         header = header,
@@ -423,14 +428,14 @@ fun DataTable(
             state = verticalScrollState,
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items = table.rows, key = { item -> item.uuid }){ row ->
+            items(items = table.value.rows, key = { item -> item.uuid }){ row ->
                 Row {
 
                     if(stickyColumn.isEmpty().not()){
 
                         stickyColumn.forEach {
                             val cell = row.cells[it]
-                            val width = table.getColumnWidth(it) ?: config.defaultCellWidth
+                            val width = columnHeaders.getColumnWidth(it) ?: config.defaultCellWidth
                             val columnWidth = width.dp
 
                             Cell(
@@ -457,7 +462,7 @@ fun DataTable(
                         columns.forEach {
                             val cell = row.cells.get(it)
 
-                            val width = table.getColumnWidth(it) ?: config.defaultCellWidth
+                            val width = columnHeaders.getColumnWidth(it) ?: config.defaultCellWidth
                             val columnWidth = width.dp
 
                             Cell(

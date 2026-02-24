@@ -153,7 +153,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             enableEdgeToEdge()
 
-            var tableState by remember { mutableStateOf(table) }
+            var tableState = remember { mutableStateOf(table) }
 
             Scaffold(modifier = Modifier
                 .fillMaxSize()
@@ -210,7 +210,7 @@ class MainActivity : ComponentActivity() {
                     onHeaderActionTriggered = { header, columnAction ->
                         when (columnAction) {
                             is ColumnAction.Sort -> {
-                                tableState = tableState.sort(
+                                tableState.value = tableState.value.sort(
                                     header = header,
                                     sortAction = columnAction
                                 )
