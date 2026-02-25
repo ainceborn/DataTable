@@ -8,16 +8,20 @@ import androidx.compose.runtime.remember
 import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.model.Cell
 import com.rainc.compose.datatable.model.CellStyle
+import com.rainc.compose.datatable.model.CompilationKey
 import com.rainc.compose.datatable.model.Coordinate
 import java.util.UUID
 
 @Immutable
 data class SwitchCell(
     val value: Boolean,
-    override var sortKeyValue: String,
     override val coordinate: Coordinate,
     override val uuid: UUID  = UUID.randomUUID()
 ) : Cell  {
+
+    override val sortKeyValue: CompilationKey
+        get() = CompilationKey.BooleanKey(value)
+
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         val isChecked = remember { mutableStateOf(value) }

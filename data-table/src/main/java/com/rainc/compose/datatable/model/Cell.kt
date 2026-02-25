@@ -8,7 +8,7 @@ import java.util.UUID
 
 @Immutable
 interface Cell : Serializable {
-    val sortKeyValue: String
+    val sortKeyValue: CompilationKey
     val uuid: UUID
     val coordinate: Coordinate
 

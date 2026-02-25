@@ -10,6 +10,7 @@ import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.model.Cell
 import com.rainc.compose.datatable.model.CellStyle
 import com.rainc.compose.datatable.model.ChipGroup
+import com.rainc.compose.datatable.model.CompilationKey
 import com.rainc.compose.datatable.model.Coordinate
 import com.rainc.compose.datatable.view.ChipGroup
 import java.util.UUID
@@ -18,9 +19,12 @@ import java.util.UUID
 data class SegmentControl(
     val data: ChipGroup<String>,
     override val coordinate: Coordinate,
-    override var sortKeyValue: String = data.chips.joinToString { "it.value - ${it.isSelected}" },
     override val uuid: UUID = UUID.randomUUID(),
 ) : Cell  {
+
+    override val sortKeyValue: CompilationKey
+        get() = CompilationKey.StringKey(data.chips.joinToString { "it.value - ${it.isSelected}" })
+
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         var chips by remember { mutableStateOf(data.chips) }
