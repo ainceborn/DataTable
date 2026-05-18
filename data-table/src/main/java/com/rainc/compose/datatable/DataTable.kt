@@ -29,11 +29,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -85,13 +89,16 @@ fun PaginationDataTable(
     dataBoxColor: Color = Color.White,
     dataBoxContentAlignment: Alignment = Alignment.Center,
     dataTextStyle: () -> TextStyle = { TextStyle.Default.copy(color = Color.Black, fontSize = 14.sp) },
+    errorColor: Color = Color.Red,
+    rowErrorIndicationWidth: Dp = 5.dp,
     horizontalCellDividerColor: Color? = null,
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
     dataUpdatePolicy: DataUpdatePolicy = DataUpdatePolicy.NONE,
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
-    onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null
+    onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null,
+    rootComposeView: ComposeView? = null, // for integration with RecyclerView
 ) {
     val pagingRows = paginationData.collectAsLazyPagingItems()
     val horizontalScrollState = rememberScrollState()
@@ -104,6 +111,22 @@ fun PaginationDataTable(
 
     val rowsIds = remember { mutableStateOf(setOf<UUID>()) }
     val lastAction = remember { mutableStateOf<Pair<Header, ColumnAction>?>(null) }
+
+
+    val errorRows by remember {
+        derivedStateOf {
+            pagingRows.itemSnapshotList.items
+                .filter { row -> row.row.cells.any { cell -> cell.hasError } }
+                .map { it.row.uuid }
+                .toSet()
+        }
+    }
+
+    val hasError by remember {
+        derivedStateOf {
+            errorRows.isNotEmpty()
+        }
+    }
 
     LaunchedEffect(key1 = pagingRows.itemCount) {
         val newRowsIds = pagingRows.itemSnapshotList.items.map { it.row.uuid }.toSet()
@@ -163,6 +186,13 @@ fun PaginationDataTable(
     Column(modifier) {
         // Top Row (Static Top Left + Scrollable Headers)
         Row(modifier = Modifier.fillMaxWidth()) {
+            if(hasError){
+                Box(
+                    modifier = Modifier
+                        .height(columnHeight)
+                        .width(rowErrorIndicationWidth)
+                )
+            }
             stickyColumn.forEach { index ->
                 val width = getColumnWidth(index) ?: config.defaultCellWidth
                 val header = headers[index]
@@ -220,10 +250,33 @@ fun PaginationDataTable(
 
         LazyColumn(
             state = verticalScrollState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().run{
+                if(rootComposeView != null){
+                    this.nestedScroll(rememberNestedScrollInteropConnection())
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.changes.any { it.pressed }) {
+                                        rootComposeView.parent?.requestDisallowInterceptTouchEvent(true)
+                                    }
+                                }
+                            }
+                        }
+                } else this
+            }
         ) {
             items(count = pagingRows.itemCount){ index ->
                 val row = pagingRows[index]?.row ?: return@items
+
+                if(hasError){
+                    Box(
+                        modifier = Modifier
+                            .height(columnHeight)
+                            .width(rowErrorIndicationWidth)
+                            .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
+                    )
+                }
 
                 Row {
 
@@ -243,6 +296,7 @@ fun PaginationDataTable(
                                 verticalCellDividerColor = horizontalCellDividerColor,
                                 contentAlignment = rowHeaderContentAlignment,
                                 cellStyle = cellStyle,
+                                errorColor = errorColor,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction
                             )
@@ -270,7 +324,8 @@ fun PaginationDataTable(
                                 contentAlignment = dataBoxContentAlignment,
                                 cellStyle = cellStyle,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction
+                                onCellAction = onCellAction,
+                                errorColor = errorColor
                             )
                         }
                     }
@@ -303,15 +358,28 @@ fun DataTable(
     dataBoxColor: Color = Color.White,
     dataBoxContentAlignment: Alignment = Alignment.Center,
     dataTextStyle: () -> TextStyle = { TextStyle.Default.copy(color = Color.Black, fontSize = 14.sp) },
+    errorColor: Color = Color.Red,
+    rowErrorIndicationWidth: Dp = 5.dp,
     horizontalCellDividerColor: Color? = null,
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
     dataUpdatePolicy: DataUpdatePolicy = DataUpdatePolicy.NONE,
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
-    onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null
+    onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null,
+    rootComposeView: ComposeView? = null, // for integration with RecyclerView
 ) {
     val columnHeaders by remember { derivedStateOf { table.value.columnHeaders } }
+    val hasError by remember { derivedStateOf { table.value.rows.any { row -> row.cells.any { cell -> cell.hasError } } } }
+
+    val errorRows by remember {
+        derivedStateOf {
+            if(hasError) table.value.rows.mapNotNull { row ->
+               val hasErrorInRow = row.cells.any { cell -> cell.hasError }
+                if(hasErrorInRow) row.uuid else null
+            }.toSet() else emptySet()
+        }
+    }
 
 
     val horizontalScrollState = rememberScrollState()
@@ -369,6 +437,13 @@ fun DataTable(
     Column(modifier) {
         // Top Row (Static Top Left + Scrollable Headers)
         Row(modifier = Modifier.fillMaxWidth()) {
+            if(hasError){
+                Box(
+                    modifier = Modifier
+                        .height(columnHeight)
+                        .width(rowErrorIndicationWidth)
+                )
+            }
             stickyColumn.forEach { index ->
                 val width = columnHeaders.getColumnWidth(index) ?: config.defaultCellWidth
                 val header = columnHeaders[index]
@@ -426,13 +501,33 @@ fun DataTable(
 
         LazyColumn(
             state = verticalScrollState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().run{
+                if(rootComposeView != null){
+                   this.nestedScroll(rememberNestedScrollInteropConnection())
+                       .pointerInput(Unit) {
+                           awaitPointerEventScope {
+                               while (true) {
+                                   val event = awaitPointerEvent()
+                                   if (event.changes.any { it.pressed }) {
+                                       rootComposeView.parent?.requestDisallowInterceptTouchEvent(true)
+                                   }
+                               }
+                           }
+                       }
+                } else this
+            },
         ) {
             items(items = table.value.rows, key = { item -> item.uuid }){ row ->
                 Row {
-
+                    if(hasError){
+                        Box(
+                            modifier = Modifier
+                                .height(columnHeight)
+                                .width(rowErrorIndicationWidth)
+                                .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
+                        )
+                    }
                     if(stickyColumn.isEmpty().not()){
-
                         stickyColumn.forEach {
                             val cell = row.cells[it]
                             val width = columnHeaders.getColumnWidth(it) ?: config.defaultCellWidth
@@ -448,7 +543,8 @@ fun DataTable(
                                 contentAlignment = rowHeaderContentAlignment,
                                 cellStyle = cellStyle,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction
+                                onCellAction = onCellAction,
+                                errorColor = errorColor
                             )
                         }
 
@@ -475,6 +571,7 @@ fun DataTable(
                                 contentAlignment = dataBoxContentAlignment,
                                 cellStyle = cellStyle,
                                 onCellLongPress = onCellLongPress,
+                                errorColor = errorColor,
                                 onCellAction = onCellAction
                             )
                         }
@@ -530,6 +627,7 @@ private fun Cell(
     columnHeight: Dp,
     cellStyle: CellStyle,
     background: Color,
+    errorColor: Color,
     verticalCellDividerColor: Color?,
     contentAlignment: Alignment,
     onCellLongPress: ((Row)-> Unit)? = null,
@@ -540,23 +638,44 @@ private fun Cell(
         modifier = Modifier
             .width(columnWidth)
             .height(columnHeight)
-            .background(background)
-            .border(
-                width = if (verticalCellDividerColor != null) 0.5.dp else 0.dp,
-                color = verticalCellDividerColor ?: Color.Transparent,
-                shape = RectangleShape // Ensures the border is applied to the rectangle
-            )
-            .pointerInput(Unit) {
-                detectTapGestures(onLongPress = {
-                    onCellLongPress?.invoke(row) // Pass row header as callback
-                })
-            },
-        contentAlignment = contentAlignment,
     ) {
-        key(cell.coordinate, cell.uuid) {
-            cell.Render(
-                cellStyle = cellStyle,
-                onCellAction = onCellAction
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(background)
+                .border(
+                    width = if (verticalCellDividerColor != null) 0.5.dp else 0.dp,
+                    color = verticalCellDividerColor ?: Color.Transparent,
+                    shape = RectangleShape
+                )
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            onCellLongPress?.invoke(row)
+                        }
+                    )
+                },
+            contentAlignment = contentAlignment,
+        ) {
+            key(cell.coordinate, cell.uuid) {
+                cell.Render(
+                    cellStyle = cellStyle,
+                    onCellAction = onCellAction
+                )
+            }
+        }
+
+        if (cell.hasError) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .border(
+                        width = 2.dp,
+                        color = errorColor,
+                        shape = RectangleShape
+                    )
+                    .zIndex(8f)
             )
         }
     }
