@@ -14,7 +14,8 @@ import java.util.UUID
 data class TextCell(
     val text: String,
     override val coordinate: Coordinate,
-    override val uuid: UUID = UUID.randomUUID()
+    override val uuid: UUID = UUID.randomUUID(),
+    override val hasError: Boolean = false,
 ) : Cell {
 
     override val sortKeyValue: CompilationKey

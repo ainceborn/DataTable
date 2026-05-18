@@ -20,6 +20,7 @@ data class SegmentControl(
     val data: ChipGroup<String>,
     override val coordinate: Coordinate,
     override val uuid: UUID = UUID.randomUUID(),
+    override val hasError: Boolean = false,
 ) : Cell  {
 
     override val sortKeyValue: CompilationKey
