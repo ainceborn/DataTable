@@ -16,7 +16,8 @@ import java.util.UUID
 data class SwitchCell(
     val value: Boolean,
     override val coordinate: Coordinate,
-    override val uuid: UUID  = UUID.randomUUID()
+    override val uuid: UUID  = UUID.randomUUID(),
+    override val hasError: Boolean = false,
 ) : Cell  {
 
     override val sortKeyValue: CompilationKey

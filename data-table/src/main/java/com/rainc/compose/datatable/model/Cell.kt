@@ -11,6 +11,7 @@ interface Cell : Serializable {
     val sortKeyValue: CompilationKey
     val uuid: UUID
     val coordinate: Coordinate
+    val hasError: Boolean
 
     @Composable
     fun Render(onCellAction:((CellAction)-> Unit)?, cellStyle: CellStyle)
