@@ -49,6 +49,7 @@ import com.rainc.compose.datatable.model.PagingModel
 import com.rainc.compose.datatable.model.Row
 import com.rainc.compose.datatable.model.Table
 import com.rainc.compose.datatable.model.TableConfig
+import com.rainc.compose.datatable.model.UIIcon
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -95,6 +96,7 @@ fun PaginationDataTable(
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
     dataUpdatePolicy: DataUpdatePolicy = DataUpdatePolicy.NONE,
+    sortIconProvider: (sortMode: ColumnAction.Sort.SortMode) -> UIIcon= { UIIcon.ResourceIcon(android.R.drawable.ic_menu_sort_by_size) },
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null,
@@ -206,6 +208,7 @@ fun PaginationDataTable(
                     columnHeaderBackground = columnHeaderBackground,
                     columnHeaderDividerColor = columnHeaderDividerColor,
                     columnHeaderContentAlignment =columnHeaderContentAlignment,
+                    sortIconProvider = sortIconProvider,
                     onHeaderActionTriggered = { header, action->
                         lastAction.value = Pair(header,action)
                         onHeaderActionTriggered?.invoke(header,action)
@@ -229,11 +232,11 @@ fun PaginationDataTable(
                         columnHeaderBackground = columnHeaderBackground,
                         columnHeaderDividerColor = columnHeaderDividerColor,
                         columnHeaderContentAlignment =columnHeaderContentAlignment,
-                        onHeaderActionTriggered = { header, action->
-                            lastAction.value = Pair(header,action)
-                            onHeaderActionTriggered?.invoke(header,action)
-                        }
-                    )
+                        sortIconProvider = sortIconProvider
+                    ) { header, action ->
+                        lastAction.value = Pair(header, action)
+                        onHeaderActionTriggered?.invoke(header, action)
+                    }
                 }
             }
         }
@@ -364,6 +367,7 @@ fun DataTable(
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
     dataUpdatePolicy: DataUpdatePolicy = DataUpdatePolicy.NONE,
+    sortIconProvider: (sortMode: ColumnAction.Sort.SortMode) -> UIIcon= { UIIcon.ResourceIcon(android.R.drawable.ic_menu_sort_by_size) },
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null,
@@ -457,11 +461,11 @@ fun DataTable(
                     columnHeaderBackground = columnHeaderBackground,
                     columnHeaderDividerColor = columnHeaderDividerColor,
                     columnHeaderContentAlignment =columnHeaderContentAlignment,
-                    onHeaderActionTriggered = { header, action->
-                        lastAction.value = Pair(header,action)
-                        onHeaderActionTriggered?.invoke(header,action)
-                    }
-                )
+                    sortIconProvider = sortIconProvider
+                ) { header, action ->
+                    lastAction.value = Pair(header, action)
+                    onHeaderActionTriggered?.invoke(header, action)
+                }
             }
 
             Row(
@@ -480,11 +484,11 @@ fun DataTable(
                         columnHeaderBackground = columnHeaderBackground,
                         columnHeaderDividerColor = columnHeaderDividerColor,
                         columnHeaderContentAlignment =columnHeaderContentAlignment,
-                        onHeaderActionTriggered = { header, action->
-                            lastAction.value = Pair(header,action)
-                            onHeaderActionTriggered?.invoke(header,action)
-                        }
-                    )
+                        sortIconProvider = sortIconProvider
+                    ) { header, action ->
+                        lastAction.value = Pair(header, action)
+                        onHeaderActionTriggered?.invoke(header, action)
+                    }
                 }
             }
         }
@@ -592,6 +596,7 @@ private fun ColumnHeader(
     columnHeaderBackground: Color,
     columnHeaderDividerColor: Color?,
     columnHeaderContentAlignment: Alignment,
+    sortIconProvider: (ColumnAction.Sort.SortMode) -> UIIcon,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)?
 ){
     Box(
@@ -612,6 +617,7 @@ private fun ColumnHeader(
             modifier = Modifier.width(width),
             header = header,
             cellStyle = headerCellStyle,
+            sortIconProvider = sortIconProvider,
             onHeaderActionTriggered ={ header, action->
                 onHeaderActionTriggered?.invoke(header,action)
             }

@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.ColumnAction
 import com.rainc.compose.datatable.DataTable
-import com.rainc.compose.datatable.ResourceResolver
 import com.rainc.compose.datatable.cell.ButtonCell
 import com.rainc.compose.datatable.cell.RadioButtonCell
 import com.rainc.compose.datatable.cell.SegmentControl
@@ -145,8 +144,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        ResourceResolver.attachProvider(TableResourceProvider)
-
 
         setContent {
             enableEdgeToEdge()
@@ -218,6 +215,10 @@ class MainActivity : ComponentActivity() {
                             }
                             is CellAction.UpdateText -> {
                                 // TODO: Handle text update action
+                            }
+
+                            is CellAction.DurationSelected -> {
+
                             }
                         }
                     },

@@ -12,6 +12,7 @@ interface Cell : Serializable {
     val uuid: UUID
     val coordinate: Coordinate
     val hasError: Boolean
+    val attr: CellAttributes
 
     @Composable
     fun Render(onCellAction:((CellAction)-> Unit)?, cellStyle: CellStyle)

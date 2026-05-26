@@ -15,14 +15,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rainc.compose.datatable.model.CellStyle
 import com.rainc.compose.datatable.model.Header
+import com.rainc.compose.datatable.model.UIIcon
 
 @Composable
 fun ColumnHeader(
     modifier: Modifier = Modifier,
     header: Header,
     cellStyle: CellStyle,
-    onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null
-){
+    sortIconProvider: (ColumnAction.Sort.SortMode) -> UIIcon,
+    onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null, ){
     Row(modifier = modifier) {
         Spacer(Modifier.width(8.dp))
 
@@ -41,17 +42,31 @@ fun ColumnHeader(
                 // No action to render
             }
             is ColumnAction.Sort -> {
+                val icon = sortIconProvider(header.action.mode)
+
                 IconButton(
                     modifier = Modifier.size(32.dp),
                     onClick = {
                         onHeaderActionTriggered?.invoke(header, header.action.copy(mode = header.action.mode.transition()))
                     },
                     content = {
-                        Icon(
-                            painter = painterResource(ResourceResolver.getSortIconId(header.action.mode)),
-                            contentDescription = "Sort Action Icon",
-                            tint = cellStyle.textStyle.color
-                        )
+
+                        when(icon){
+                            is UIIcon.ResourceIcon -> {
+                                Icon(
+                                    painter = painterResource(icon.icon),
+                                    contentDescription = "Sort Action Icon",
+                                    tint = cellStyle.textStyle.color
+                                )
+                            }
+                            is UIIcon.ComposeVectorIcon -> {
+                                Icon(
+                                    imageVector = icon.icon(),
+                                    contentDescription = "Sort Action Icon",
+                                    tint = cellStyle.textStyle.color
+                                )
+                            }
+                        }
                     }
                 )
             }

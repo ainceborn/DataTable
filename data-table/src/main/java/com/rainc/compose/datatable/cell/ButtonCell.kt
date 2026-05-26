@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.model.Cell
+import com.rainc.compose.datatable.model.CellAttributes
 import com.rainc.compose.datatable.model.CellStyle
 import com.rainc.compose.datatable.model.CompilationKey
 import com.rainc.compose.datatable.model.Coordinate
@@ -17,6 +18,7 @@ data class ButtonCell(
     override val coordinate: Coordinate,
     override val uuid: UUID = UUID.randomUUID(),
     override val hasError: Boolean = false,
+    override val attr: CellAttributes = CellAttributes(),
 ) : Cell {
 
     override val sortKeyValue: CompilationKey
