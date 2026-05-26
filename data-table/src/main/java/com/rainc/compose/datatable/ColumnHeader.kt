@@ -10,12 +10,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.rainc.compose.datatable.model.CellStyle
 import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.UIIcon
+import com.rainc.compose.datatable.tools.Base64IconResolver.getIconBitmap
 
 @Composable
 fun ColumnHeader(
@@ -50,7 +53,6 @@ fun ColumnHeader(
                         onHeaderActionTriggered?.invoke(header, header.action.copy(mode = header.action.mode.transition()))
                     },
                     content = {
-
                         when(icon){
                             is UIIcon.ResourceIcon -> {
                                 Icon(
@@ -65,6 +67,17 @@ fun ColumnHeader(
                                     contentDescription = "Sort Action Icon",
                                     tint = cellStyle.textStyle.color
                                 )
+                            }
+
+                            is UIIcon.Base64Icon -> {
+                                val iconBitmap = icon.iconInfo.getIconBitmap(context = LocalContext.current)
+                                iconBitmap?.asImageBitmap()?.let {
+                                    Icon(
+                                        bitmap = it,
+                                        contentDescription = icon.iconInfo.contentDescription ?: "Sort Action Icon",
+                                        tint = cellStyle.textStyle.color
+                                    )
+                                }
                             }
                         }
                     }

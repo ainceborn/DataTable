@@ -19,6 +19,7 @@ object Base64IconResolver {
 
      fun Base64IconInfo.getIconDrawable(context: Context): Drawable? {
         return iconDecoder.getIconDrawable(
+            context = context,
             iconInfo = this,
             iconSize = iconSize
         )
@@ -26,6 +27,7 @@ object Base64IconResolver {
 
     fun Base64IconInfo.getIconBitmap(context: Context): Bitmap? {
         return iconDecoder.getIconBitmap(
+            context = context,
             iconInfo = this,
             iconSize = iconSize
         )
