@@ -5,8 +5,8 @@ object Metadata {
     const val minSDK = 30
     const val compileSdk = 35
     const val targetSdk = 35
-    const val versionCode = 2
-    const val versionName = "1.0.5"
+    const val versionCode = 3
+    const val versionName = "1.0.8"
     const val buildToolsVersion = "35.0.1"
 
     object Versions {
