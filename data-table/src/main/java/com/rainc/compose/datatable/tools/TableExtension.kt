@@ -3,6 +3,7 @@ package com.rainc.compose.datatable.tools
 import com.rainc.compose.datatable.ColumnAction
 import com.rainc.compose.datatable.ColumnAction.Sort.SortMode.*
 import com.rainc.compose.datatable.model.Header
+import com.rainc.compose.datatable.model.Row
 import com.rainc.compose.datatable.model.Table
 
 fun Table.sort(header: Header, sortAction: ColumnAction.Sort) : Table{
@@ -27,4 +28,8 @@ fun Table.sort(header: Header, sortAction: ColumnAction.Sort) : Table{
         },
         rows = rows
     )
+}
+
+fun Table.filter(predicate: (Row) -> Boolean): Table {
+    return copy(rows = rows.filter(predicate))
 }

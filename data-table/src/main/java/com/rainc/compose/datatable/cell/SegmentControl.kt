@@ -26,11 +26,11 @@ data class SegmentControl(
 ) : Cell  {
 
     override val sortKeyValue: CompilationKey
-        get() = CompilationKey.StringKey(data.chips.joinToString { "it.value - ${it.isSelected}" })
+        get() = CompilationKey.StringKey(data.chips.joinToString { "${it.value} - ${it.isSelected}" })
 
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
-        var chips by remember { mutableStateOf(data.chips) }
+        var chips by remember(data) { mutableStateOf(data.chips) }
 
         ChipGroup(
             data = chips,

@@ -27,7 +27,7 @@ data class SwitchCell(
 
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
-        val isChecked = remember { mutableStateOf(value) }
+        val isChecked = remember(value) { mutableStateOf(value) }
 
         Switch(
             checked = isChecked.value,

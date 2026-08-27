@@ -7,7 +7,7 @@ import com.rainc.compose.datatable.model.PagingModel
 
 abstract class PagingSource(
     private val api: PageApi,
-    private val pageCount: Int
+    private val pageCount: Int? = null
 ) : PagingSource<Int, PagingModel>() {
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, PagingModel> {
@@ -17,6 +17,8 @@ abstract class PagingSource(
             .await()
             .getOrDefault(emptyList())
 
+        // pageCount == null means the total page count isn't known up front — in that
+        // case an empty page is the only end-of-data signal.
         return LoadResult.Page(
             data =  newItems,
             prevKey = if (page == 1) null else page - 1,

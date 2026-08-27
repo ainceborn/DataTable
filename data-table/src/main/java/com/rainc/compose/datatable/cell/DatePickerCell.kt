@@ -39,8 +39,8 @@ data class DatePickerCell(
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         val isDialogVisible = remember { mutableStateOf(false) }
-        var textValue: String by remember { mutableStateOf(stringValue) }
-        var dateInMillsState: Long by remember { mutableLongStateOf(dateInMills) }
+        var textValue: String by remember(stringValue) { mutableStateOf(stringValue) }
+        var dateInMillsState: Long by remember(dateInMills) { mutableLongStateOf(dateInMills) }
 
 
         TextButton(

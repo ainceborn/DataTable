@@ -7,5 +7,6 @@ import java.util.UUID
 data class Row(
     val uuid: UUID = UUID.randomUUID(),
     val index: Int,
-    val cells: List<Cell>
+    val cells: List<Cell>,
+    val isSelected: Boolean = false
 )
