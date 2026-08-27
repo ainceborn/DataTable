@@ -37,9 +37,9 @@ data class DurationPickerCell(
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         val isDialogVisible = remember { mutableStateOf(false) }
-        var textValue: String by remember { mutableStateOf(stringValue) }
-        var hoursState by remember { mutableStateOf(duration.inWholeHours.toInt()) }
-        var minutesState by remember { mutableStateOf((duration.inWholeMinutes % 60).toInt()) }
+        var textValue: String by remember(stringValue) { mutableStateOf(stringValue) }
+        var hoursState by remember(duration) { mutableStateOf(duration.inWholeHours.toInt()) }
+        var minutesState by remember(duration) { mutableStateOf((duration.inWholeMinutes % 60).toInt()) }
 
         TextButton(
             content = {

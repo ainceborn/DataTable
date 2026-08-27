@@ -29,7 +29,8 @@ data class RadioButtonCell(
 
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
-        var isEnabled by remember { mutableStateOf(value) }
+        var isEnabled by remember(value) { mutableStateOf(value) }
+
         RadioButton(
             selected = isEnabled,
             onClick = {
