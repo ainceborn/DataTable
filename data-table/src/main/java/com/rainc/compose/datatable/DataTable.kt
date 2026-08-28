@@ -121,6 +121,8 @@ fun PaginationDataTable(
     headers: List<Header>? = null,
     rowBackgroundProvider: ((Row) -> Color?)? = null,
     cellBackgroundProvider: ((Cell) -> Color?)? = null,
+    rowFilter: ((Row) -> Boolean)? = null,
+    rowComparator: Comparator<Row>? = null,
     rowOverrides: State<Map<UUID, Row>> = remember { mutableStateOf(emptyMap()) },
     progressBar: @Composable () -> Unit = {
         CircularProgressIndicator(modifier = Modifier.size(40.dp))
@@ -175,6 +177,14 @@ fun PaginationDataTable(
             items.isNotEmpty() && items.all { resolveRow(it)?.isSelected == true }
         }
     }
+
+    val sortedRows: List<Row>? = if (rowComparator != null) {
+        remember(pagingRows.itemSnapshotList, rowComparator, rowOverrides.value) {
+            pagingRows.itemSnapshotList.items
+                .mapNotNull { resolveRow(it) }
+                .sortedWith(rowComparator)
+        }
+    } else null
 
     LaunchedEffect(key1 = pagingRows.itemCount) {
         val newRowsIds = pagingRows.itemSnapshotList.items.map { it.row.uuid }.toSet()
@@ -243,7 +253,7 @@ fun PaginationDataTable(
     Column(modifier) {
         // Top Row (Static Top Left + Scrollable Headers)
         if (showHeaderRow) {
-            Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation)) {
+            Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation).zIndex(1f)) {
                 if(hasError){
                     Box(
                         modifier = Modifier
@@ -337,8 +347,14 @@ fun PaginationDataTable(
                 } else this
             }
         ) {
-            items(count = pagingRows.itemCount){ index ->
-                val row = resolveRow(pagingRows[index]) ?: return@items
+            // Always use items(count) so pagingRows[index] fires on every visible slot,
+            // keeping Paging3 prefetch hints alive regardless of sort state.
+            // When sorted, render from sortedRows[index] instead of the paged order.
+            items(count = pagingRows.itemCount) { index ->
+                // Side-effect: triggers Paging3 prefetch for this index.
+                val pagedRow = resolveRow(pagingRows[index])
+                val row = sortedRows?.getOrNull(index) ?: pagedRow ?: return@items
+                if (rowFilter?.invoke(row) == false) return@items
 
                 if(hasError){
                     Box(
@@ -357,7 +373,6 @@ fun PaginationDataTable(
                     ?: if (rowIsSelected) selectedRowBackground else dataBoxColor
 
                 Row {
-
                     if(hasSelection){
                         Box(
                             modifier = Modifier
@@ -369,18 +384,14 @@ fun PaginationDataTable(
                             rowSelectionContent(row) { onRowSelectionToggle?.invoke(it) }
                         }
                     }
-
                     if(stickyColumn.isEmpty().not()){
-
                         stickyColumn.forEach { columnIndex ->
                             val cell = row.cells[columnIndex]
                             val width = getColumnWidth(columnIndex) ?: config.defaultCellWidth
-                            val columnWidth = width.dp
-
                             Cell(
                                 cell = cell,
                                 row = row,
-                                columnWidth = columnWidth,
+                                columnWidth = width.dp,
                                 columnHeight = columnHeight,
                                 background = rowHeaderCellBackground,
                                 verticalCellDividerColor = horizontalCellDividerColor,
@@ -392,20 +403,15 @@ fun PaginationDataTable(
                                 onCellAction = onCellAction
                             )
                         }
-
                     }
-
-                    // Scrollable Row Cells
                     Row(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
-                        columns.forEach {  columnIndex ->
+                        columns.forEach { columnIndex ->
                             val cell = row.cells[columnIndex]
                             val width = getColumnWidth(columnIndex) ?: config.defaultCellWidth
-                            val columnWidth = width.dp
-
                             Cell(
                                 cell = cell,
                                 row = row,
-                                columnWidth = columnWidth,
+                                columnWidth = width.dp,
                                 columnHeight = columnHeight,
                                 background = dataCellBackground,
                                 verticalCellDividerColor = verticalCellDividerColor,
@@ -414,7 +420,7 @@ fun PaginationDataTable(
                                 errorColor = errorColor,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction,
+                                onCellAction = onCellAction
                             )
                         }
                     }
@@ -540,7 +546,7 @@ fun DataTable(
     Column(modifier) {
         // Top Row (Static Top Left + Scrollable Headers)
         if (showHeaderRow) {
-            Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation)) {
+            Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation).zIndex(1f)) {
                 if(hasError){
                     Box(
                         modifier = Modifier
