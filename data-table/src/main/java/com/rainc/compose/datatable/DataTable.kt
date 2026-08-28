@@ -356,15 +356,6 @@ fun PaginationDataTable(
                 val row = sortedRows?.getOrNull(index) ?: pagedRow ?: return@items
                 if (rowFilter?.invoke(row) == false) return@items
 
-                if(hasError){
-                    Box(
-                        modifier = Modifier
-                            .height(columnHeight)
-                            .width(rowErrorIndicationWidth)
-                            .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
-                    )
-                }
-
                 val rowIsSelected = row.isSelected
                 val customRowBackground = rowBackgroundProvider?.invoke(row)
                 val rowHeaderCellBackground = customRowBackground
@@ -373,6 +364,14 @@ fun PaginationDataTable(
                     ?: if (rowIsSelected) selectedRowBackground else dataBoxColor
 
                 Row {
+                    if(hasError){
+                        Box(
+                            modifier = Modifier
+                                .height(columnHeight)
+                                .width(rowErrorIndicationWidth)
+                                .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
+                        )
+                    }
                     if(hasSelection){
                         Box(
                             modifier = Modifier
