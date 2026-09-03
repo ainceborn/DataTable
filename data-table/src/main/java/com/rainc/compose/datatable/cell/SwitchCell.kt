@@ -30,6 +30,7 @@ data class SwitchCell(
         val isChecked = remember(value) { mutableStateOf(value) }
 
         Switch(
+            enabled = attr.isEditable,
             checked = isChecked.value,
             onCheckedChange = {
                 isChecked.value = it

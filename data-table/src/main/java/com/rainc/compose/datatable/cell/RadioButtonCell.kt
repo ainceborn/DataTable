@@ -32,6 +32,7 @@ data class RadioButtonCell(
         var isEnabled by remember(value) { mutableStateOf(value) }
 
         RadioButton(
+            enabled = attr.isEditable,
             selected = isEnabled,
             onClick = {
                 isEnabled = !isEnabled
