@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -111,14 +112,22 @@ fun PaginationDataTable(
     onRowSelectionToggle: ((Row) -> Unit)? = null,
     selectionColumnWidth: Dp = 48.dp,
     onSelectAllToggle: ((Boolean) -> Unit)? = null,
+    headerSelectionContent: @Composable (allSelected: Boolean, onToggle: (Boolean) -> Unit) -> Unit =
+        { allSelected, onToggle -> Checkbox(checked = allSelected, onCheckedChange = onToggle) },
+    rowSelectionContent: @Composable (row: Row, onToggle: (Row) -> Unit) -> Unit =
+        { row, onToggle -> Checkbox(checked = row.isSelected, onCheckedChange = { onToggle(row) }) },
     showHeaderRow: Boolean = true,
     columnHeaderHeight: Dp? = null,
     headers: List<Header>? = null,
     rowBackgroundProvider: ((Row) -> Color?)? = null,
+    cellBackgroundProvider: ((Cell) -> Color?)? = null,
+    rowFilter: ((Row) -> Boolean)? = null,
+    rowComparator: Comparator<Row>? = null,
     rowOverrides: State<Map<UUID, Row>> = remember { mutableStateOf(emptyMap()) },
     progressBar: @Composable () -> Unit = {
         CircularProgressIndicator(modifier = Modifier.size(40.dp))
-    }
+    },
+    headerElevation: Dp = 0.dp,
 ) {
     val pagingRows = paginationData.collectAsLazyPagingItems()
     val horizontalScrollState = rememberScrollState()
@@ -168,6 +177,14 @@ fun PaginationDataTable(
             items.isNotEmpty() && items.all { resolveRow(it)?.isSelected == true }
         }
     }
+
+    val sortedRows: List<Row>? = if (rowComparator != null) {
+        remember(pagingRows.itemSnapshotList, rowComparator, rowOverrides.value) {
+            pagingRows.itemSnapshotList.items
+                .mapNotNull { resolveRow(it) }
+                .sortedWith(rowComparator)
+        }
+    } else null
 
     LaunchedEffect(key1 = pagingRows.itemCount) {
         val newRowsIds = pagingRows.itemSnapshotList.items.map { it.row.uuid }.toSet()
@@ -236,7 +253,7 @@ fun PaginationDataTable(
     Column(modifier) {
         // Top Row (Static Top Left + Scrollable Headers)
         if (showHeaderRow) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation).zIndex(1f)) {
                 if(hasError){
                     Box(
                         modifier = Modifier
@@ -252,10 +269,7 @@ fun PaginationDataTable(
                             .background(columnHeaderBackground),
                         contentAlignment = Alignment.Center
                     ) {
-                        Checkbox(
-                            checked = allSelected,
-                            onCheckedChange = { onSelectAllToggle?.invoke(it) }
-                        )
+                        headerSelectionContent(allSelected) { onSelectAllToggle?.invoke(it) }
                     }
                 }
                 stickyColumn.forEach { index ->
@@ -270,11 +284,11 @@ fun PaginationDataTable(
                         headerCellStyle = headerCellStyle,
                         columnHeaderBackground = columnHeaderBackground,
                         columnHeaderDividerColor = columnHeaderDividerColor,
-                        columnHeaderContentAlignment =columnHeaderContentAlignment,
+                        columnHeaderContentAlignment = columnHeaderContentAlignment,
                         sortIconProvider = sortIconProvider,
-                        onHeaderActionTriggered = { header, action->
-                            lastAction.value = Pair(header,action)
-                            onHeaderActionTriggered?.invoke(header,action)
+                        onHeaderActionTriggered = { header, action ->
+                            lastAction.value = Pair(header, action)
+                            onHeaderActionTriggered?.invoke(header, action)
                         }
                     )
                 }
@@ -294,7 +308,7 @@ fun PaginationDataTable(
                             headerCellStyle = headerCellStyle,
                             columnHeaderBackground = columnHeaderBackground,
                             columnHeaderDividerColor = columnHeaderDividerColor,
-                            columnHeaderContentAlignment =columnHeaderContentAlignment,
+                            columnHeaderContentAlignment = columnHeaderContentAlignment,
                             sortIconProvider = sortIconProvider
                         ) { header, action ->
                             lastAction.value = Pair(header, action)
@@ -333,17 +347,14 @@ fun PaginationDataTable(
                 } else this
             }
         ) {
-            items(count = pagingRows.itemCount){ index ->
-                val row = resolveRow(pagingRows[index]) ?: return@items
-
-                if(hasError){
-                    Box(
-                        modifier = Modifier
-                            .height(columnHeight)
-                            .width(rowErrorIndicationWidth)
-                            .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
-                    )
-                }
+            // Always use items(count) so pagingRows[index] fires on every visible slot,
+            // keeping Paging3 prefetch hints alive regardless of sort state.
+            // When sorted, render from sortedRows[index] instead of the paged order.
+            items(count = pagingRows.itemCount) { index ->
+                // Side-effect: triggers Paging3 prefetch for this index.
+                val pagedRow = resolveRow(pagingRows[index])
+                val row = sortedRows?.getOrNull(index) ?: pagedRow ?: return@items
+                if (rowFilter?.invoke(row) == false) return@items
 
                 val rowIsSelected = row.isSelected
                 val customRowBackground = rowBackgroundProvider?.invoke(row)
@@ -353,7 +364,14 @@ fun PaginationDataTable(
                     ?: if (rowIsSelected) selectedRowBackground else dataBoxColor
 
                 Row {
-
+                    if(hasError){
+                        Box(
+                            modifier = Modifier
+                                .height(columnHeight)
+                                .width(rowErrorIndicationWidth)
+                                .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
+                        )
+                    }
                     if(hasSelection){
                         Box(
                             modifier = Modifier
@@ -362,56 +380,46 @@ fun PaginationDataTable(
                                 .background(rowHeaderCellBackground),
                             contentAlignment = Alignment.Center
                         ) {
-                            Checkbox(
-                                checked = rowIsSelected,
-                                onCheckedChange = { onRowSelectionToggle?.invoke(row) }
-                            )
+                            rowSelectionContent(row) { onRowSelectionToggle?.invoke(it) }
                         }
                     }
-
                     if(stickyColumn.isEmpty().not()){
-
                         stickyColumn.forEach { columnIndex ->
                             val cell = row.cells[columnIndex]
                             val width = getColumnWidth(columnIndex) ?: config.defaultCellWidth
-                            val columnWidth = width.dp
-
                             Cell(
                                 cell = cell,
                                 row = row,
-                                columnWidth = columnWidth,
+                                columnWidth = width.dp,
                                 columnHeight = columnHeight,
                                 background = rowHeaderCellBackground,
                                 verticalCellDividerColor = horizontalCellDividerColor,
                                 contentAlignment = rowHeaderContentAlignment,
                                 cellStyle = cellStyle,
                                 errorColor = errorColor,
+                                cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction
                             )
                         }
-
                     }
-
-                    // Scrollable Row Cells
                     Row(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
-                        columns.forEach {  columnIndex ->
+                        columns.forEach { columnIndex ->
                             val cell = row.cells[columnIndex]
                             val width = getColumnWidth(columnIndex) ?: config.defaultCellWidth
-                            val columnWidth = width.dp
-
                             Cell(
                                 cell = cell,
                                 row = row,
-                                columnWidth = columnWidth,
+                                columnWidth = width.dp,
                                 columnHeight = columnHeight,
                                 background = dataCellBackground,
                                 verticalCellDividerColor = verticalCellDividerColor,
                                 contentAlignment = dataBoxContentAlignment,
                                 cellStyle = cellStyle,
+                                errorColor = errorColor,
+                                cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction,
-                                errorColor = errorColor
+                                onCellAction = onCellAction
                             )
                         }
                     }
@@ -455,9 +463,15 @@ fun DataTable(
     onRowSelectionToggle: ((Row) -> Unit)? = null,
     selectionColumnWidth: Dp = 48.dp,
     onSelectAllToggle: ((Boolean) -> Unit)? = null,
+    headerSelectionContent: @Composable (allSelected: Boolean, onToggle: (Boolean) -> Unit) -> Unit =
+        { allSelected, onToggle -> Checkbox(checked = allSelected, onCheckedChange = onToggle) },
+    rowSelectionContent: @Composable (row: Row, onToggle: (Row) -> Unit) -> Unit =
+        { row, onToggle -> Checkbox(checked = row.isSelected, onCheckedChange = { onToggle(row) }) },
     showHeaderRow: Boolean = true,
     columnHeaderHeight: Dp? = null,
     rowBackgroundProvider: ((Row) -> Color?)? = null,
+    cellBackgroundProvider: ((Cell) -> Color?)? = null,
+    headerElevation: Dp = 0.dp,
 ) {
     val columnHeaders by remember { derivedStateOf { table.value.columnHeaders } }
     val hasError by remember { derivedStateOf { table.value.rows.any { row -> row.cells.any { cell -> cell.hasError } } } }
@@ -531,7 +545,7 @@ fun DataTable(
     Column(modifier) {
         // Top Row (Static Top Left + Scrollable Headers)
         if (showHeaderRow) {
-            Row(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation).zIndex(1f)) {
                 if(hasError){
                     Box(
                         modifier = Modifier
@@ -547,10 +561,7 @@ fun DataTable(
                             .background(columnHeaderBackground),
                         contentAlignment = Alignment.Center
                     ) {
-                        Checkbox(
-                            checked = allSelected,
-                            onCheckedChange = { onSelectAllToggle?.invoke(it) }
-                        )
+                        headerSelectionContent(allSelected) { onSelectAllToggle?.invoke(it) }
                     }
                 }
                 stickyColumn.forEach { index ->
@@ -652,10 +663,7 @@ fun DataTable(
                                 .background(rowHeaderCellBackground),
                             contentAlignment = Alignment.Center
                         ) {
-                            Checkbox(
-                                checked = rowIsSelected,
-                                onCheckedChange = { onRowSelectionToggle?.invoke(row) }
-                            )
+                            rowSelectionContent(row) { onRowSelectionToggle?.invoke(it) }
                         }
                     }
                     if(stickyColumn.isEmpty().not()){
@@ -673,9 +681,10 @@ fun DataTable(
                                 verticalCellDividerColor = horizontalCellDividerColor,
                                 contentAlignment = rowHeaderContentAlignment,
                                 cellStyle = cellStyle,
+                                errorColor = errorColor,
+                                cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction,
-                                errorColor = errorColor
                             )
                         }
 
@@ -701,8 +710,9 @@ fun DataTable(
                                 verticalCellDividerColor = verticalCellDividerColor,
                                 contentAlignment = dataBoxContentAlignment,
                                 cellStyle = cellStyle,
-                                onCellLongPress = onCellLongPress,
                                 errorColor = errorColor,
+                                cellBackgroundProvider = cellBackgroundProvider,
+                                onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction
                             )
                         }
@@ -763,6 +773,7 @@ private fun Cell(
     errorColor: Color,
     verticalCellDividerColor: Color?,
     contentAlignment: Alignment,
+    cellBackgroundProvider: ((Cell) -> Color?)? = null,
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)?
 )
@@ -776,7 +787,7 @@ private fun Cell(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(background)
+                .background(cellBackgroundProvider?.invoke(cell) ?: background)
                 .border(
                     width = if (verticalCellDividerColor != null) 0.5.dp else 0.dp,
                     color = verticalCellDividerColor ?: Color.Transparent,

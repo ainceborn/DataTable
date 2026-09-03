@@ -3,12 +3,19 @@ plugins {
     id("maven-publish")
 }
 group = "com.github.ainceborn"
+version = Metadata.versionName
 
 android {
     defineLib(
         namespace = Metadata.Id,
         isComposeEnable = true
     )
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
