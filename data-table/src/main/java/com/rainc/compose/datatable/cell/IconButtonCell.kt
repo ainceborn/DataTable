@@ -78,6 +78,7 @@ data class IconButtonCell(
         val containerColor = containerColorRes?.let { colorResource(it) } ?: Color.Unspecified
 
         Button(
+            enabled = attr.isEditable,
             colors = ButtonDefaults.buttonColors(
                 containerColor = containerColor,
                 contentColor = contentColor

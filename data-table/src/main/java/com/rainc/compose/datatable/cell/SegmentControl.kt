@@ -35,7 +35,9 @@ data class SegmentControl(
         ChipGroup(
             data = chips,
             textStyle = cellStyle.textStyle,
-            onSelectedChanged = { (index, chip) ->
+            onSelectedChanged = onSelectedChanged@{ (index, chip) ->
+                if (!attr.isEditable) return@onSelectedChanged
+
                 chips = if(data.isSingleSelect){
                    chips.mapIndexed { chipIndex, model ->
                         if(chipIndex == index){

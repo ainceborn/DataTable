@@ -44,6 +44,7 @@ data class DatePickerCell(
 
 
         TextButton(
+            enabled = attr.isEditable,
             content = {
                 Text(text = textValue, style = cellStyle.textStyle.updateTextColor(attr.textColor))
             },

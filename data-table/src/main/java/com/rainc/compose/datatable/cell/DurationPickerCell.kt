@@ -42,6 +42,7 @@ data class DurationPickerCell(
         var minutesState by remember(duration) { mutableStateOf((duration.inWholeMinutes % 60).toInt()) }
 
         TextButton(
+            enabled = attr.isEditable,
             content = {
                 Text(text = textValue, style = cellStyle.textStyle.updateTextColor(attr.textColor))
             },

@@ -27,6 +27,7 @@ data class ButtonCell(
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         Button(
+            enabled = attr.isEditable,
             content = {
                 Text(text = buttonText)
             },
