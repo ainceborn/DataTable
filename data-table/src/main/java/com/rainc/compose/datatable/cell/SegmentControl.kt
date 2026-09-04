@@ -35,6 +35,7 @@ data class SegmentControl(
         ChipGroup(
             data = chips,
             textStyle = cellStyle.textStyle,
+            chipStyle = cellStyle.chipStyle,
             onSelectedChanged = onSelectedChanged@{ (index, chip) ->
                 if (!attr.isEditable) return@onSelectedChanged
 

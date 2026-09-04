@@ -6,5 +6,7 @@ import androidx.compose.ui.text.TextStyle
 @Immutable
 data class CellStyle(
    val textStyle: TextStyle,
-   val buttonStyle: ButtonStyle
+   val buttonStyle: ButtonStyle,
+   val switchStyle: SwitchStyle? = null,
+   val chipStyle: ChipStyle? = null,
 )
