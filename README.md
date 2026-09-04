@@ -1,4 +1,4 @@
-## 🎨 DataTable [Compose] [![](https://jitpack.io/v/ainceborn/DataTable.svg)](https://jitpack.io/#ainceborn/DataTable)
+## DataTable [Compose] [![](https://jitpack.io/v/ainceborn/DataTable.svg)](https://jitpack.io/#ainceborn/DataTable)
 
 A Jetpack Compose data-table/grid library with two rendering modes: a fully-materialized `DataTable` (you own the whole `Table` in memory) and a `PaginationDataTable` backed by AndroidX Paging 3.
 
@@ -18,7 +18,7 @@ dependencies {
 }
 ```
 
-## 🧱 Core model
+## Core model
 
 | Type | What it is |
 |---|---|
@@ -31,9 +31,76 @@ dependencies {
 
 ### Cell types
 
-`TextCell`, `ButtonCell`, `IconButtonCell`, `SwitchCell`, `RadioButtonCell`, `SegmentControl`, `DatePickerCell`, `DurationPickerCell` — all live in `com.rainc.compose.datatable.cell` and implement `Cell`. Each is an immutable `data class`; to change a cell's value you build a new instance via `.copy(...)`, not mutate it in place (see **Live cell updates** below).
+| Type | Description |
+|---|---|
+| `TextCell` | Read-only text display. |
+| `ButtonCell` | Basic button. |
+| `IconButtonCell` | Button with an icon resolved from `Base64IconInfo`. |
+| `SwitchCell` | Material3 `Switch`. Appearance controlled via `SwitchStyle`. |
+| `RadioButtonCell` | Single radio option. |
+| `SegmentControl` | Row of `FilterChip` items backed by `ChipGroup<String>`. Appearance controlled via `ChipStyle`. |
+| `DatePickerCell` | Tappable text that triggers a date picker dialog. |
+| `DurationPickerCell` | Tappable text that triggers a duration picker dialog. |
 
-## 🚀 Basic usage — `DataTable`
+All live in `com.rainc.compose.datatable.cell` and implement `Cell`. Each is an immutable `data class`; to change a cell's value you build a new instance via `.copy(...)`, not mutate it in place (see **Live cell updates** below).
+
+### CellAttributes
+
+Every cell carries `attr: CellAttributes`:
+
+```kotlin
+data class CellAttributes(
+    val textColor: Int? = null,       // ARGB override for cell text; null = inherit from dataTextStyle
+    val style: String = "",           // reserved for host-app styling hints
+    val genericAttributes: Bundle = Bundle(), // arbitrary key-value extras
+    val contentPadding: PaddingValues = PaddingValues(0.dp), // per-cell padding override
+    val isEditable: Boolean = true,   // false = disabled state for interactive cells
+)
+```
+
+### ErrorStyle
+
+Controls the appearance of error indicators:
+
+```kotlin
+data class ErrorStyle(
+    val borderColor: Color = Color(0xFFBB0000),       // border around cells with hasError = true
+    val backgroundColor: Color = Color(0xFFFFF0F0),   // fill of error cells (when showErrorCellBackground = true)
+    val indicatorColor: Color = Color(0xFFBB0000),     // leading edge bar color for error rows
+    val indicatorWidth: Dp = 5.dp,
+)
+```
+
+### SwitchStyle
+
+Wraps Material3 `SwitchColors` for full theme control of `SwitchCell`:
+
+```kotlin
+data class SwitchStyle(val colors: SwitchColors)
+```
+
+Pass to `DataTable`/`PaginationDataTable` via `switchStyle`. Falls back to `SwitchDefaults.colors()` when `null`.
+
+### ChipStyle
+
+Controls the appearance of every chip in `SegmentControl`:
+
+```kotlin
+data class ChipStyle(
+    val containerColor: Color,
+    val selectedContainerColor: Color,
+    val labelColor: Color,
+    val selectedLabelColor: Color,
+    val checkmarkColor: Color,
+    val borderColor: Color,
+    val selectedBorderColor: Color,
+    val borderWidth: Dp = 1.dp,
+)
+```
+
+Pass to `DataTable`/`PaginationDataTable` via `chipStyle`. Falls back to `MaterialTheme.colorScheme` tokens when `null`.
+
+## Basic usage — `DataTable`
 
 You own the `Table` and push new ones as data changes; `DataTable` just renders whatever `State<Table>` you give it.
 
@@ -64,16 +131,14 @@ DataTable(
     config = defaultTableConfig(cellHeight = 56),
     onCellAction = { action ->
         when (action) {
-            is CellAction.ToggleBoolean -> {
-                // rebuild the affected row/cell and push a new Table into tableState
-            }
+            is CellAction.ToggleBoolean -> { /* rebuild row/cell, push new Table */ }
             else -> Unit
         }
     }
 )
 ```
 
-## 📄 Pagination usage — `PaginationDataTable`
+## Pagination usage — `PaginationDataTable`
 
 Implement `PageApi` — one method, called by Paging 3 whenever it needs page `page` (1-based):
 
@@ -82,7 +147,7 @@ class MyPageApi(private val scope: CoroutineScope) : PageApi {
     override fun pageCount(page: Int): Deferred<Result<List<PagingModel>>> =
         scope.async {
             runCatching {
-                val rows = myBackend.fetchPage(page) // your own paging call
+                val rows = myBackend.fetchPage(page)
                 rows.map { PagingModel.PagingRow(it) }
             }
         }
@@ -95,80 +160,97 @@ Wrap it in the library's `PagingSource` and build a `Pager`:
 val pagingDataFlow: Flow<PagingData<PagingModel>> =
     Pager(
         config = PagingConfig(pageSize = 20, enablePlaceholders = false),
-        // pageCount: Int? — pass the real total if you know it up front, or leave it null and
-        // rely on an empty page as the end-of-data signal (see "Nullable pageCount" below).
         pagingSourceFactory = { object : PagingSource(myPageApi, pageCount = 12) {} }
     ).flow.cachedIn(viewModelScope)
 
 PaginationDataTable(
     modifier = Modifier.fillMaxSize(),
     paginationData = pagingDataFlow,
-    headers = myColumnHeaders, // explicit — see "Headers on the paginated path" below
+    headers = myColumnHeaders,
     config = defaultTableConfig(),
 )
 ```
 
-## 🎛️ Parameters
+## Parameters
 
 Both composables share this set:
 
-| Parameter | Description |
-|---|---|
-| `modifier` | Modifier for the whole table. |
-| `config` | `TableConfig` — row height / default cell width. Build with `defaultTableConfig()`. |
-| `columnHeaderBackground` / `columnHeaderContentAlignment` / `columnHeaderTextStyle` | Header row styling. |
-| `rowHeaderBackground` / `rowHeaderContentAlignment` | Styling for cells in sticky (leading) columns. |
-| `dataBoxColor` / `dataBoxContentAlignment` / `dataTextStyle` | Styling for non-sticky data cells. |
-| `errorColor` / `rowErrorIndicationWidth` | Color/width of the leading error-indicator bar, shown for any row containing a cell with `hasError = true`. |
-| `horizontalCellDividerColor` / `verticalCellDividerColor` / `columnHeaderDividerColor` | Divider colors (optional). |
-| `dataUpdatePolicy` | `DataUpdatePolicy.NONE` or `RETRIGGER_LAST_COLUMN_ACTION` — re-fires the last header action (e.g. re-apply sort) when the row set changes. |
-| `sortIconProvider` | `(SortMode) -> UIIcon` — custom sort icon per header. |
-| `onCellLongPress` | `(Row) -> Unit` — fired on long-press of any cell in the row. |
-| `onCellAction` | `(CellAction) -> Unit` — text edits, toggles, button presses, date/duration picks, segment changes, list-picker/unspecified actions. |
-| `onHeaderActionTriggered` | `(Header, ColumnAction) -> Unit` — sort clicks, etc. |
-| `rootComposeView` | Pass the hosting `ComposeView` when embedding inside a `RecyclerView`/legacy view hierarchy, so touch/nested-scroll interop works correctly. |
-| `showHeaderRow` | Hide the header row entirely. Default `true`. |
-| `columnHeaderHeight` | Header row height, independent of `config.defaultHeightInDp` (data row height). `null` = same as data rows. |
-| `selectedRowBackground` / `onRowSelectionToggle` / `onSelectAllToggle` / `selectionColumnWidth` | Row selection — see **Row selection** below. |
-| `rowBackgroundProvider` | `(Row) -> Color?` — per-row background override, takes precedence over `selectedRowBackground`. Return `null` to fall through to the default. |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `modifier` | `Modifier` | `Modifier` | Modifier for the whole table. |
+| `config` | `TableConfig` | `defaultTableConfig()` | Row height / default cell width. |
+| `columnHeaderBackground` | `Color` | `Color.LightGray` | Header row background. |
+| `columnHeaderTextStyle` | `() -> TextStyle` | white 14sp | Header text style. |
+| `columnHeaderContentAlignment` | `Alignment` | `Center` | Header cell content alignment. |
+| `columnHeaderDividerColor` | `Color?` | `null` | Divider below the header row. |
+| `columnHeaderHeight` | `Dp?` | `null` (= data row height) | Header row height override. |
+| `rowHeaderBackground` | `Color` | `Color.LightGray` | Background for cells in sticky leading columns. |
+| `rowHeaderContentAlignment` | `Alignment` | `Center` | Content alignment for sticky leading cells. |
+| `dataBoxColor` | `Color` | `Color.White` | Background for non-sticky data cells. |
+| `dataBoxContentAlignment` | `Alignment` | `Center` | Content alignment for data cells. |
+| `dataTextStyle` | `() -> TextStyle` | black 14sp | Text style passed to all data cells via `CellStyle`. |
+| `errorStyle` | `ErrorStyle` | see `ErrorStyle` | Error indicator/border/background colors and widths. |
+| `horizontalCellDividerColor` | `Color?` | `null` | Horizontal divider between rows. |
+| `verticalCellDividerColor` | `Color?` | `null` | Vertical divider between columns. |
+| `headerElevation` | `Dp` | `0.dp` | Shadow elevation of the header row (useful when `clearFocusOnTap = true` and the table scrolls under it). |
+| `defaultCellContentPadding` | `PaddingValues` | `8dp h / 4dp v` | Default padding inside each cell; per-cell `CellAttributes.contentPadding` overrides this. |
+| `showErrorCellBackground` | `Boolean` | `false` | When `true`, fills cells with `hasError = true` using `errorStyle.backgroundColor`. |
+| `clearFocusOnTap` | `Boolean` | `false` | Clears keyboard focus when the user taps outside an active text field (useful inside `RecyclerView` embeddings). |
+| `switchStyle` | `SwitchStyle?` | `null` | Color overrides for `SwitchCell`. `null` = `SwitchDefaults.colors()`. |
+| `chipStyle` | `ChipStyle?` | `null` | Color overrides for `SegmentControl` chips. `null` = `MaterialTheme` defaults. |
+| `cellBackgroundProvider` | `((Cell) -> Color?)?` | `null` | Per-cell background override. Return `null` to fall through to `dataBoxColor`/`rowHeaderBackground`. |
+| `rowBackgroundProvider` | `((Row) -> Color?)?` | `null` | Per-row background override, takes precedence over `selectedRowBackground`. Return `null` to fall through. |
+| `selectedRowBackground` | `Color` | `Color(0x330061A8)` | Background for rows where `isSelected == true`. |
+| `onRowSelectionToggle` | `((Row) -> Unit)?` | `null` | Fired when the per-row checkbox is toggled. |
+| `onSelectAllToggle` | `((Boolean) -> Unit)?` | `null` | Fired when the header "select all" checkbox is toggled. |
+| `selectionColumnWidth` | `Dp` | `48.dp` | Width of the checkbox selection column. |
+| `showHeaderRow` | `Boolean` | `true` | Show/hide the column header row. |
+| `sortIconProvider` | `(SortMode) -> UIIcon` | built-in icon | Custom sort icon per sort state. |
+| `onCellLongPress` | `((Row) -> Unit)?` | `null` | Fired on long-press of any cell in the row. |
+| `onCellAction` | `((CellAction) -> Unit)?` | `null` | Text edits, toggles, button presses, date/duration picks, segment changes, list-picker actions. |
+| `onHeaderActionTriggered` | `((Header, ColumnAction) -> Unit)?` | `null` | Sort header taps, etc. |
+| `rootComposeView` | `AbstractComposeView?` | `null` | Pass the hosting `ComposeView` when embedding inside a `RecyclerView`/legacy view hierarchy for correct nested-scroll interop. |
 
 `PaginationDataTable`-only:
 
-| Parameter | Description |
-|---|---|
-| `paginationData` | `Flow<PagingData<PagingModel>>` — from `Pager(...).flow`. |
-| `headers` | Explicit `List<Header>`. Strongly recommended — see **Headers on the paginated path** below. |
-| `rowOverrides` | `State<Map<UUID, Row>>` — live-patch overlay for already-loaded rows. See **Live-patching a paginated row** below. |
-| `progressBar` | `@Composable () -> Unit` shown as the last list item while the next page is loading (`loadState.append is LoadState.Loading`). Defaults to a plain `CircularProgressIndicator`. |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `paginationData` | `Flow<PagingData<PagingModel>>` | — | From `Pager(...).flow`. |
+| `headers` | `List<Header>?` | `null` | Explicit column headers. Strongly recommended — see **Headers on the paginated path** below. |
+| `rowOverrides` | `State<Map<UUID, Row>>` | empty | Live-patch overlay for already-loaded rows. See **Live-patching a paginated row** below. |
+| `rowFilter` | `((Row) -> Boolean)?` | `null` | Client-side filter applied after page load. |
+| `rowComparator` | `Comparator<Row>?` | `null` | Client-side sort applied after page load. |
+| `dataUpdatePolicy` | `DataUpdatePolicy` | `NONE` | `RETRIGGER_LAST_COLUMN_ACTION` re-fires the last header action when the row set changes. |
+| `progressBar` | `@Composable () -> Unit` | `CircularProgressIndicator` | Shown as the last list item while the next page is loading. |
 
-## ⚠️ Important notes
+## Important notes
 
 ### Live cell updates require a stable `uuid`
-`Cell` implementations key their internal Compose state (`TextField` value, `Switch` checked state, etc.) with `remember(value) { ... }` / `remember(data) { ... }` — keyed on the **incoming field**, not the `uuid`. This means:
-- Pushing a new `Cell` instance with the **same `uuid`** but a **different value** correctly updates the rendered cell (as of 1.0.9 — see Changelog).
+`Cell` implementations key their internal Compose state with `remember(value) { ... }` — keyed on the **incoming field**, not the `uuid`. This means:
+- Pushing a new `Cell` instance with the **same `uuid`** but a **different value** correctly updates the rendered cell.
 - Pushing a cell with a **new `uuid`** tears down and rebuilds that cell's composition from scratch (loses any transient local state, e.g. an in-progress text selection).
 
-So: for a server-driven/programmatic value push, keep the `uuid` the same. Only mint a new `uuid` if you actually want the cell's Compose state reset.
+Keep the `uuid` stable for programmatic value pushes. Only mint a new `uuid` if you want the cell's Compose state reset.
 
 ### Row selection has no dedicated "selection mode" flag
-The checkbox column (header + per-row) only renders once **at least one** `Row.isSelected == true`. There's no separate on/off switch for "selection mode" — if you want a long-press to *enter* selection mode with nothing pre-selected, handle that yourself: on `onCellLongPress`, set that one row's `isSelected = true` (which reveals the column), and let subsequent taps flow through `onRowSelectionToggle`/`onSelectAllToggle` as usual. Exiting selection mode means resetting every row back to `isSelected = false`.
+The checkbox column only renders once **at least one** `Row.isSelected == true`. On `onCellLongPress`, set that row's `isSelected = true` to reveal the column, then let subsequent taps flow through `onRowSelectionToggle`/`onSelectAllToggle`. Exiting selection mode means resetting every row back to `isSelected = false`.
 
 ### Headers on the paginated path
-`PaginationDataTable` can auto-detect headers from the first page's `PagingModel.RowWithHeaders` item, but that only works once the first page has actually arrived — a valid "no data yet" / empty-first-page state would otherwise render with **no header row at all**. Pass `headers` explicitly whenever you already know the columns up front (the common case); the library falls back to auto-detection only when `headers == null`.
+`PaginationDataTable` can auto-detect headers from the first page's `PagingModel.RowWithHeaders` item, but that only works once the first page arrives — an empty-first-page state would render with no header row. Pass `headers` explicitly whenever you know the columns up front (the common case).
 
 ### Live-patching a paginated row (`rowOverrides`)
-Paging 3 owns its own item cache/diffing; you can't just mutate a `Row` you got back from a loaded page and expect the list to notice. `rowOverrides: State<Map<UUID, Row>>` (keyed by `Row.uuid`) is the escape hatch — when present, it's consulted everywhere a page item is read (cell rendering, `hasError`/`errorRows`, `hasSelection`/`allSelected`), **without** going through `PagingSource`/`invalidate()` or a network refetch. Typical usage: keep your own `MutableStateFlow<Map<UUID, Row>>` (or `mutableStateOf`), and merge a patched `Row` into it whenever you get a live update (cell edit pushed from a server, local selection toggle, etc.) for a row that's already loaded.
+Paging 3 owns its own item cache; you can't mutate a loaded `Row` and expect the list to notice. `rowOverrides: State<Map<UUID, Row>>` is the escape hatch — consulted everywhere a page item is read (rendering, error state, selection) without going through `PagingSource`/`invalidate()`. Keep a `MutableStateFlow<Map<UUID, Row>>` and merge a patched `Row` into it on any live update (cell edit, selection toggle, server push, etc.).
 
 ### `PagingSource`'s `pageCount` is optional
-`PagingSource(api, pageCount: Int? = null)`. Pass the real total if your backend reports it — pagination stops as soon as the requested page exceeds it. Leave it `null` if the total isn't known up front; in that case the **only** end-of-data signal is an empty page (`pageCount(page)` resolving to an empty list). Either way, make sure your `PageApi` implementation actually returns an empty list once there's nothing left — a "loop back to page 1" or similarly non-empty fallback response will make Paging 3 request pages forever.
+`PagingSource(api, pageCount: Int? = null)`. Pass the real total if known — pagination stops once the requested page exceeds it. With `null`, the **only** end-of-data signal is an empty page. Make sure your `PageApi` returns an empty list once there's nothing left; a non-empty fallback will make Paging 3 request pages forever.
 
 ### Long-press vs. interactive cell content
-`onCellLongPress` is detected on the `Initial` pointer pass and independently cancels/consumes the rest of the gesture once it fires, so it correctly coexists with interactive cell content (`TextField`, `Button`, `Switch`, list-picker rows, etc.) instead of being silently swallowed by it.
+`onCellLongPress` is detected on the `Initial` pointer pass and cancels the rest of the gesture, so it coexists correctly with interactive cell content (`TextField`, `Button`, `Switch`, chip rows, etc.) instead of being silently swallowed.
 
 ### `Table` extensions
-`Table.sort(header, sortAction): Table` and `Table.filter(predicate: (Row) -> Boolean): Table` — both in `com.rainc.compose.datatable.tools`, both return a new `Table` (no in-place mutation). `LazyColumn` in `DataTable` keys rows by `uuid`, so pushing a filtered/sorted `Table` diffs correctly without extra bookkeeping.
+`Table.sort(header, sortAction): Table` and `Table.filter(predicate: (Row) -> Boolean): Table` — both in `com.rainc.compose.datatable.tools`, both return a new `Table`. `LazyColumn` keys rows by `uuid`, so pushing a filtered/sorted `Table` diffs correctly.
 
-## 🔄 Migrating from 1.0.8
+## Migrating from 1.0.8
 
-- `ColumnConfig.cellHeightInDp` was **removed** — row height is controlled solely by `TableConfig.defaultHeightInDp` (data rows) and `columnHeaderHeight` (header row, defaults to the same value).
+- `ColumnConfig.cellHeightInDp` was **removed** — row height is controlled solely by `TableConfig.defaultHeightInDp` (data rows) and `columnHeaderHeight` (header row).
 - `PagingSource`'s constructor changed from `(api, pageCount: Int)` to `(api, pageCount: Int? = null)` — existing call sites passing an `Int` keep compiling as-is.
