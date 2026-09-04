@@ -14,7 +14,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.ainceborn:DataTable:1.0.9")
+    implementation("com.github.ainceborn:DataTable:1.1.2")
 }
 ```
 
