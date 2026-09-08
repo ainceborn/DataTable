@@ -1,16 +1,20 @@
 package com.rainc.compose.datatable.cell
 
+import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.annotation.ColorRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,38 +76,43 @@ data class IconButtonCell(
         val contentColorRes = attr.genericAttributes.getIntOrNull(KEY_CONTENT_COLOR_RES)
         val iconInfo = attr.genericAttributes.getSerializableOrNull(KEY_ICON_INFO, Base64IconInfo::class.java)
 
-        val iconBitmap = iconInfo?.getIconBitmap(context = context)
+        val iconBitmap = remember(iconInfo) { iconInfo?.getIconBitmap(context) }
 
         val contentColor = contentColorRes?.let { colorResource(it) } ?: Color.Unspecified
         val containerColor = containerColorRes?.let { colorResource(it) } ?: Color.Unspecified
 
-        Button(
-            enabled = attr.isEditable,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = containerColor,
-                contentColor = contentColor
-            ),
-            content = {
-                Row {
-                    iconBitmap?.asImageBitmap()?.let {
-                        Image(
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Button(
+                enabled = attr.isEditable,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = containerColor,
+                    contentColor = contentColor
+                ),
+                content = {
+                    Row {
+                        iconBitmap?.asImageBitmap()?.let {
+                            Image(
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                                bitmap = it,
+                                colorFilter = ColorFilter.tint(contentColor),
+                                contentDescription = null
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Text(
                             modifier = Modifier.align(Alignment.CenterVertically),
-                            bitmap = it,
-                            colorFilter = ColorFilter.tint(contentColor),
-                            contentDescription = null
+                            text = buttonText,
+                            style = cellStyle.textStyle.copy(color = contentColor)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
                     }
-                    Text(
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                        text = buttonText,
-                        style = cellStyle.textStyle.copy(color = contentColor)
-                    )
+                },
+                onClick = {
+                    onCellAction?.invoke(CellAction.ButtonPressed(trigger = this@IconButtonCell))
                 }
-            },
-            onClick = {
-                onCellAction?.invoke(CellAction.ButtonPressed(trigger = this))
-            }
-        )
+            )
+        }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,8 +37,10 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.AbstractComposeView
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -48,10 +51,13 @@ import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.rainc.compose.datatable.model.Cell
 import com.rainc.compose.datatable.model.CellStyle
+import com.rainc.compose.datatable.model.ChipStyle
 import com.rainc.compose.datatable.model.DataUpdatePolicy
+import com.rainc.compose.datatable.model.ErrorStyle
 import com.rainc.compose.datatable.model.Header
 import com.rainc.compose.datatable.model.PagingModel
 import com.rainc.compose.datatable.model.Row
+import com.rainc.compose.datatable.model.SwitchStyle
 import com.rainc.compose.datatable.model.Table
 import com.rainc.compose.datatable.model.TableConfig
 import com.rainc.compose.datatable.model.UIIcon
@@ -60,6 +66,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.util.UUID
+
 
 /**
  * @param table 2D list of strings representing the grid content.
@@ -98,8 +105,7 @@ fun PaginationDataTable(
     dataBoxColor: Color = Color.White,
     dataBoxContentAlignment: Alignment = Alignment.Center,
     dataTextStyle: () -> TextStyle = { TextStyle.Default.copy(color = Color.Black, fontSize = 14.sp) },
-    errorColor: Color = Color.Red,
-    rowErrorIndicationWidth: Dp = 5.dp,
+    errorStyle: ErrorStyle = ErrorStyle(),
     horizontalCellDividerColor: Color? = null,
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
@@ -108,7 +114,7 @@ fun PaginationDataTable(
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null,
-    rootComposeView: ComposeView? = null, // for integration with RecyclerView
+    rootComposeView: AbstractComposeView? = null, // for integration with RecyclerView
     selectedRowBackground: Color = Color(0x330061A8),
     onRowSelectionToggle: ((Row) -> Unit)? = null,
     selectionColumnWidth: Dp = 48.dp,
@@ -129,6 +135,11 @@ fun PaginationDataTable(
         CircularProgressIndicator(modifier = Modifier.size(40.dp))
     },
     headerElevation: Dp = 0.dp,
+    defaultCellContentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+    showErrorCellBackground: Boolean = false,
+    clearFocusOnTap: Boolean = false,
+    switchStyle: SwitchStyle? = null,
+    chipStyle: ChipStyle? = null,
 ) {
     val pagingRows = paginationData.collectAsLazyPagingItems()
     val horizontalScrollState = rememberScrollState()
@@ -136,7 +147,9 @@ fun PaginationDataTable(
     val buttonStyle = getButtonStyle()
     val cellStyle by remember { mutableStateOf(CellStyle(
         textStyle = dataTextStyle(),
-        buttonStyle =buttonStyle
+        buttonStyle = buttonStyle,
+        switchStyle = switchStyle,
+        chipStyle = chipStyle,
     )) }
 
     val rowsIds = remember { mutableStateOf(setOf<UUID>()) }
@@ -250,8 +263,17 @@ fun PaginationDataTable(
         return resolvedHeaders.getOrNull(columnIndex)?.config?.cellWidthInDp
     }
 
+    val focusManager = LocalFocusManager.current
+    val clearFocusModifier = if (clearFocusOnTap) Modifier.pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                awaitPointerEvent(pass = PointerEventPass.Initial)
+                focusManager.clearFocus()
+            }
+        }
+    } else Modifier
 
-    Column(modifier) {
+    Column(modifier.then(clearFocusModifier)) {
         // Top Row (Static Top Left + Scrollable Headers)
         if (showHeaderRow) {
             Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation).zIndex(1f)) {
@@ -259,8 +281,7 @@ fun PaginationDataTable(
                     Box(
                         modifier = Modifier
                             .height(headerRowHeight)
-                            .width(rowErrorIndicationWidth)
-                    )
+                            .width(errorStyle.indicatorWidth)                    )
                 }
                 if(hasSelection){
                     Box(
@@ -369,8 +390,7 @@ fun PaginationDataTable(
                         Box(
                             modifier = Modifier
                                 .height(columnHeight)
-                                .width(rowErrorIndicationWidth)
-                                .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
+                                .width(errorStyle.indicatorWidth)                                .background(if(errorRows.contains(row.uuid)) errorStyle.indicatorColor else Color.Transparent)
                         )
                     }
                     if(hasSelection){
@@ -397,10 +417,12 @@ fun PaginationDataTable(
                                 verticalCellDividerColor = horizontalCellDividerColor,
                                 contentAlignment = rowHeaderContentAlignment,
                                 cellStyle = cellStyle,
-                                errorColor = errorColor,
+                                errorStyle = errorStyle,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction
+                                onCellAction = onCellAction,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                             )
                         }
                     }
@@ -417,10 +439,12 @@ fun PaginationDataTable(
                                 verticalCellDividerColor = verticalCellDividerColor,
                                 contentAlignment = dataBoxContentAlignment,
                                 cellStyle = cellStyle,
-                                errorColor = errorColor,
+                                errorStyle = errorStyle,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction
+                                onCellAction = onCellAction,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                             )
                         }
                     }
@@ -449,8 +473,7 @@ fun DataTable(
     dataBoxColor: Color = Color.White,
     dataBoxContentAlignment: Alignment = Alignment.Center,
     dataTextStyle: () -> TextStyle = { TextStyle.Default.copy(color = Color.Black, fontSize = 14.sp) },
-    errorColor: Color = Color.Red,
-    rowErrorIndicationWidth: Dp = 5.dp,
+    errorStyle: ErrorStyle = ErrorStyle(),
     horizontalCellDividerColor: Color? = null,
     verticalCellDividerColor: Color? = null,
     columnHeaderDividerColor: Color? = null,
@@ -459,7 +482,7 @@ fun DataTable(
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)? = null,
     onHeaderActionTriggered: ((Header, ColumnAction) -> Unit)? = null,
-    rootComposeView: ComposeView? = null, // for integration with RecyclerView
+    rootComposeView: AbstractComposeView? = null, // for integration with RecyclerView
     selectedRowBackground: Color = Color(0x330061A8),
     onRowSelectionToggle: ((Row) -> Unit)? = null,
     selectionColumnWidth: Dp = 48.dp,
@@ -473,6 +496,11 @@ fun DataTable(
     rowBackgroundProvider: ((Row) -> Color?)? = null,
     cellBackgroundProvider: ((Cell) -> Color?)? = null,
     headerElevation: Dp = 0.dp,
+    defaultCellContentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+    showErrorCellBackground: Boolean = false,
+    clearFocusOnTap: Boolean = false,
+    switchStyle: SwitchStyle? = null,
+    chipStyle: ChipStyle? = null,
 ) {
     val columnHeaders by remember { derivedStateOf { table.value.columnHeaders } }
     val hasError by remember { derivedStateOf { table.value.rows.any { row -> row.cells.any { cell -> cell.hasError } } } }
@@ -495,7 +523,9 @@ fun DataTable(
     val buttonStyle = getButtonStyle()
     val cellStyle by remember { mutableStateOf(CellStyle(
         textStyle = dataTextStyle(),
-        buttonStyle =buttonStyle
+        buttonStyle = buttonStyle,
+        switchStyle = switchStyle,
+        chipStyle = chipStyle,
     )) }
 
     val rowsIds = remember { mutableStateOf(setOf<UUID>()) }
@@ -543,7 +573,17 @@ fun DataTable(
     }
 
 
-    Column(modifier) {
+    val focusManager = LocalFocusManager.current
+    val clearFocusModifier = if (clearFocusOnTap) Modifier.pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                awaitPointerEvent(pass = PointerEventPass.Initial)
+                focusManager.clearFocus()
+            }
+        }
+    } else Modifier
+
+    Column(modifier.then(clearFocusModifier)) {
         // Top Row (Static Top Left + Scrollable Headers)
         if (showHeaderRow) {
             Row(modifier = Modifier.fillMaxWidth().shadow(elevation = headerElevation).zIndex(1f)) {
@@ -551,8 +591,7 @@ fun DataTable(
                     Box(
                         modifier = Modifier
                             .height(headerRowHeight)
-                            .width(rowErrorIndicationWidth)
-                    )
+                            .width(errorStyle.indicatorWidth)                    )
                 }
                 if(hasSelection){
                     Box(
@@ -652,8 +691,7 @@ fun DataTable(
                         Box(
                             modifier = Modifier
                                 .height(columnHeight)
-                                .width(rowErrorIndicationWidth)
-                                .background(if(errorRows.contains(row.uuid)) errorColor else Color.Transparent)
+                                .width(errorStyle.indicatorWidth)                                .background(if(errorRows.contains(row.uuid)) errorStyle.indicatorColor else Color.Transparent)
                         )
                     }
                     if(hasSelection){
@@ -682,10 +720,12 @@ fun DataTable(
                                 verticalCellDividerColor = horizontalCellDividerColor,
                                 contentAlignment = rowHeaderContentAlignment,
                                 cellStyle = cellStyle,
-                                errorColor = errorColor,
+                                errorStyle = errorStyle,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                             )
                         }
 
@@ -711,10 +751,12 @@ fun DataTable(
                                 verticalCellDividerColor = verticalCellDividerColor,
                                 contentAlignment = dataBoxContentAlignment,
                                 cellStyle = cellStyle,
-                                errorColor = errorColor,
+                                errorStyle = errorStyle,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
-                                onCellAction = onCellAction
+                                onCellAction = onCellAction,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                             )
                         }
                     }
@@ -771,14 +813,18 @@ private fun Cell(
     columnHeight: Dp,
     cellStyle: CellStyle,
     background: Color,
-    errorColor: Color,
+    errorStyle: ErrorStyle,
     verticalCellDividerColor: Color?,
     contentAlignment: Alignment,
+    defaultCellContentPadding: PaddingValues,
+    showErrorCellBackground: Boolean = false,
     cellBackgroundProvider: ((Cell) -> Color?)? = null,
     onCellLongPress: ((Row)-> Unit)? = null,
-    onCellAction: ((CellAction)-> Unit)?
+    onCellAction: ((CellAction)-> Unit)?,
 )
 {
+    val isFocused = remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .width(columnWidth)
@@ -788,7 +834,11 @@ private fun Cell(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(cellBackgroundProvider?.invoke(cell) ?: background)
+                // Error background takes priority over cellBackgroundProvider and row background.
+                .background(
+                    if (showErrorCellBackground && cell.hasError) errorStyle.backgroundColor
+                    else cellBackgroundProvider?.invoke(cell) ?: background
+                )
                 .border(
                     width = if (verticalCellDividerColor != null) 0.5.dp else 0.dp,
                     color = verticalCellDividerColor ?: Color.Transparent,
@@ -850,7 +900,9 @@ private fun Cell(
                         }
                     }
                 }
-                .padding(cell.attr.contentPadding),
+                // Per-cell padding wins when explicitly set (non-zero); falls back to table default.
+                .padding(cell.attr.contentPadding.takeUnless { it == PaddingValues(0.dp) } ?: defaultCellContentPadding)
+                .onFocusChanged { isFocused.value = it.hasFocus },
             contentAlignment = contentAlignment,
         ) {
             key(cell.coordinate, cell.uuid) {
@@ -861,13 +913,26 @@ private fun Cell(
             }
         }
 
+        if (isFocused.value) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .border(
+                        width = 2.dp,
+                        color = Color(0xFF0057D2),
+                        shape = RectangleShape
+                    )
+                    .zIndex(9f)
+            )
+        }
+
         if (cell.hasError) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .border(
                         width = 2.dp,
-                        color = errorColor,
+                        color = errorStyle.borderColor,
                         shape = RectangleShape
                     )
                     .zIndex(8f)

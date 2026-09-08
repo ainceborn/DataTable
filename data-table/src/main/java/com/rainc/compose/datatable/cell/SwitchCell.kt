@@ -1,10 +1,15 @@
 package com.rainc.compose.datatable.cell
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.model.Cell
 import com.rainc.compose.datatable.model.CellAttributes
@@ -28,15 +33,18 @@ data class SwitchCell(
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
         val isChecked = remember(value) { mutableStateOf(value) }
+        val colors = cellStyle.switchStyle?.colors ?: SwitchDefaults.colors()
 
-        Switch(
-            enabled = attr.isEditable,
-            checked = isChecked.value,
-            onCheckedChange = {
-                isChecked.value = it
-                onCellAction?.invoke(CellAction.ToggleBoolean(isChecked.value, trigger = this))
-            }
-        )
-
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Switch(
+                enabled = attr.isEditable,
+                checked = isChecked.value,
+                onCheckedChange = {
+                    isChecked.value = it
+                    onCellAction?.invoke(CellAction.ToggleBoolean(isChecked.value, trigger = this@SwitchCell))
+                },
+                colors = colors,
+            )
+        }
     }
 }
