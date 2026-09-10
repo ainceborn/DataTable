@@ -3,6 +3,7 @@ package com.rainc.compose.datatable.cell
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
 import com.rainc.compose.datatable.CellAction
 import com.rainc.compose.datatable.model.Cell
 import com.rainc.compose.datatable.model.CellAttributes
@@ -25,6 +26,10 @@ data class TextCell(
 
     @Composable
     override fun Render(onCellAction: ((CellAction) -> Unit)?, cellStyle: CellStyle) {
-        Text(text = text, style = cellStyle.textStyle)
+        val textStyle = if (attr.textColor != null)
+            cellStyle.textStyle.copy(color = Color(attr.textColor!!))
+        else
+            cellStyle.textStyle
+        Text(text = text, style = textStyle)
     }
 }
