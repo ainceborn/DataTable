@@ -31,12 +31,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
@@ -264,14 +270,24 @@ fun PaginationDataTable(
     }
 
     val focusManager = LocalFocusManager.current
-    val clearFocusModifier = if (clearFocusOnTap) Modifier.pointerInput(Unit) {
-        awaitPointerEventScope {
-            while (true) {
-                awaitPointerEvent(pass = PointerEventPass.Initial)
-                focusManager.clearFocus()
+    val columnCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    // Bounds of the currently-focused cell in Column-local space; null when nothing is focused.
+    val focusedCellLocalBounds = remember { mutableStateOf<Rect?>(null) }
+    val clearFocusModifier = if (clearFocusOnTap) Modifier
+        .onGloballyPositioned { columnCoords.value = it }
+        .pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val bounds = focusedCellLocalBounds.value
+                    // Skip clearFocus when the tap lands inside the currently-focused cell —
+                    // re-focusing the same BTF hides and immediately re-shows the keyboard.
+                    if (bounds == null || !bounds.contains(down.position)) {
+                        focusManager.clearFocus()
+                    }
+                }
             }
-        }
-    } else Modifier
+        } else Modifier
 
     Column(modifier.then(clearFocusModifier)) {
         // Top Row (Static Top Left + Scrollable Headers)
@@ -423,6 +439,8 @@ fun PaginationDataTable(
                                 onCellAction = onCellAction,
                                 defaultCellContentPadding = defaultCellContentPadding,
                                 showErrorCellBackground = showErrorCellBackground,
+                                columnCoords = columnCoords,
+                                focusedCellLocalBounds = focusedCellLocalBounds,
                             )
                         }
                     }
@@ -445,6 +463,8 @@ fun PaginationDataTable(
                                 onCellAction = onCellAction,
                                 defaultCellContentPadding = defaultCellContentPadding,
                                 showErrorCellBackground = showErrorCellBackground,
+                                columnCoords = columnCoords,
+                                focusedCellLocalBounds = focusedCellLocalBounds,
                             )
                         }
                     }
@@ -574,14 +594,21 @@ fun DataTable(
 
 
     val focusManager = LocalFocusManager.current
-    val clearFocusModifier = if (clearFocusOnTap) Modifier.pointerInput(Unit) {
-        awaitPointerEventScope {
-            while (true) {
-                awaitPointerEvent(pass = PointerEventPass.Initial)
-                focusManager.clearFocus()
+    val columnCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val focusedCellLocalBounds = remember { mutableStateOf<Rect?>(null) }
+    val clearFocusModifier = if (clearFocusOnTap) Modifier
+        .onGloballyPositioned { columnCoords.value = it }
+        .pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val bounds = focusedCellLocalBounds.value
+                    if (bounds == null || !bounds.contains(down.position)) {
+                        focusManager.clearFocus()
+                    }
+                }
             }
-        }
-    } else Modifier
+        } else Modifier
 
     Column(modifier.then(clearFocusModifier)) {
         // Top Row (Static Top Left + Scrollable Headers)
@@ -726,6 +753,8 @@ fun DataTable(
                                 onCellAction = onCellAction,
                                 defaultCellContentPadding = defaultCellContentPadding,
                                 showErrorCellBackground = showErrorCellBackground,
+                                columnCoords = columnCoords,
+                                focusedCellLocalBounds = focusedCellLocalBounds,
                             )
                         }
 
@@ -757,6 +786,8 @@ fun DataTable(
                                 onCellAction = onCellAction,
                                 defaultCellContentPadding = defaultCellContentPadding,
                                 showErrorCellBackground = showErrorCellBackground,
+                                columnCoords = columnCoords,
+                                focusedCellLocalBounds = focusedCellLocalBounds,
                             )
                         }
                     }
@@ -821,14 +852,19 @@ private fun Cell(
     cellBackgroundProvider: ((Cell) -> Color?)? = null,
     onCellLongPress: ((Row)-> Unit)? = null,
     onCellAction: ((CellAction)-> Unit)?,
+    columnCoords: androidx.compose.runtime.MutableState<LayoutCoordinates?>? = null,
+    focusedCellLocalBounds: androidx.compose.runtime.MutableState<Rect?>? = null,
 )
 {
     val isFocused = remember { mutableStateOf(false) }
+    val cellCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     Box(
         modifier = Modifier
             .width(columnWidth)
             .height(columnHeight)
+            .clipToBounds()
+            .onGloballyPositioned { cellCoords.value = it }
     ) {
 
         Box(
@@ -902,7 +938,21 @@ private fun Cell(
                 }
                 // Per-cell padding wins when explicitly set (non-zero); falls back to table default.
                 .padding(cell.attr.contentPadding.takeUnless { it == PaddingValues(0.dp) } ?: defaultCellContentPadding)
-                .onFocusChanged { isFocused.value = it.hasFocus },
+                .onFocusChanged { state ->
+                    isFocused.value = state.hasFocus
+                    if (focusedCellLocalBounds != null) {
+                        if (state.hasFocus) {
+                            val cc = columnCoords?.value
+                            val cl = cellCoords.value
+                            if (cc != null && cl != null) {
+                                val topLeft = cc.localPositionOf(cl, Offset.Zero)
+                                focusedCellLocalBounds.value = Rect(topLeft, Size(cl.size.width.toFloat(), cl.size.height.toFloat()))
+                            }
+                        } else {
+                            focusedCellLocalBounds.value = null
+                        }
+                    }
+                },
             contentAlignment = contentAlignment,
         ) {
             key(cell.coordinate, cell.uuid) {

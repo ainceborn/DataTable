@@ -6,7 +6,7 @@ object Metadata {
     const val compileSdk = 35
     const val targetSdk = 35
     const val versionCode = 6
-    const val versionName = "1.1.2"
+    const val versionName = "1.1.3"
     const val buildToolsVersion = "35.0.1"
 
     object Versions {

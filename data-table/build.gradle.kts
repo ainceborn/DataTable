@@ -31,7 +31,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
                 groupId = "com.github.ainceborn"
-                artifactId = "data-table"
+                artifactId = "DataTable"
                 version = Metadata.versionName
             }
         }

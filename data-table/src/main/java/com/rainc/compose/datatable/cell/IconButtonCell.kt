@@ -52,7 +52,7 @@ data class IconButtonCell(
         fun buildAttribute(
             @ColorRes containerColorRes: Int?,
             @ColorRes contentColorRes: Int?,
-            iconInfo: Base64IconInfo?
+            iconInfo: Base64IconInfo?,
         ): CellAttributes {
             return CellAttributes(
                 genericAttributes = Bundle().apply {
