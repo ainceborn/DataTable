@@ -23,6 +23,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -423,10 +424,13 @@ fun PaginationDataTable(
                     if(stickyColumn.isEmpty().not()){
                         stickyColumn.forEach { columnIndex ->
                             val cell = row.cells[columnIndex]
+                            val header = resolvedHeaders[columnIndex]
                             val width = getColumnWidth(columnIndex) ?: config.defaultCellWidth
+
                             Cell(
                                 cell = cell,
                                 row = row,
+                                header = header,
                                 columnWidth = width.dp,
                                 columnHeight = columnHeight,
                                 background = rowHeaderCellBackground,
@@ -448,21 +452,24 @@ fun PaginationDataTable(
                         columns.forEach { columnIndex ->
                             val cell = row.cells[columnIndex]
                             val width = getColumnWidth(columnIndex) ?: config.defaultCellWidth
+                            val header = resolvedHeaders[columnIndex]
+
                             Cell(
                                 cell = cell,
                                 row = row,
+                                header = header,
                                 columnWidth = width.dp,
                                 columnHeight = columnHeight,
+                                cellStyle = cellStyle,
                                 background = dataCellBackground,
+                                errorStyle = errorStyle,
                                 verticalCellDividerColor = verticalCellDividerColor,
                                 contentAlignment = dataBoxContentAlignment,
-                                cellStyle = cellStyle,
-                                errorStyle = errorStyle,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction,
-                                defaultCellContentPadding = defaultCellContentPadding,
-                                showErrorCellBackground = showErrorCellBackground,
                                 columnCoords = columnCoords,
                                 focusedCellLocalBounds = focusedCellLocalBounds,
                             )
@@ -737,22 +744,25 @@ fun DataTable(
                             val cell = row.cells[it]
                             val width = columnHeaders.getColumnWidth(it) ?: config.defaultCellWidth
                             val columnWidth = width.dp
+                            val header = columnHeaders[it]
+
 
                             Cell(
                                 cell = cell,
                                 row = row,
+                                header = header,
                                 columnWidth = columnWidth,
                                 columnHeight = columnHeight,
+                                cellStyle = cellStyle,
                                 background = rowHeaderCellBackground,
+                                errorStyle = errorStyle,
                                 verticalCellDividerColor = horizontalCellDividerColor,
                                 contentAlignment = rowHeaderContentAlignment,
-                                cellStyle = cellStyle,
-                                errorStyle = errorStyle,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction,
-                                defaultCellContentPadding = defaultCellContentPadding,
-                                showErrorCellBackground = showErrorCellBackground,
                                 columnCoords = columnCoords,
                                 focusedCellLocalBounds = focusedCellLocalBounds,
                             )
@@ -770,22 +780,24 @@ fun DataTable(
 
                             val width = columnHeaders.getColumnWidth(it) ?: config.defaultCellWidth
                             val columnWidth = width.dp
+                            val header = columnHeaders[it]
 
                             Cell(
                                 cell = cell,
                                 row = row,
+                                header = header,
                                 columnWidth = columnWidth,
                                 columnHeight = columnHeight,
+                                cellStyle = cellStyle,
                                 background = dataCellBackground,
+                                errorStyle = errorStyle,
                                 verticalCellDividerColor = verticalCellDividerColor,
                                 contentAlignment = dataBoxContentAlignment,
-                                cellStyle = cellStyle,
-                                errorStyle = errorStyle,
+                                defaultCellContentPadding = defaultCellContentPadding,
+                                showErrorCellBackground = showErrorCellBackground,
                                 cellBackgroundProvider = cellBackgroundProvider,
                                 onCellLongPress = onCellLongPress,
                                 onCellAction = onCellAction,
-                                defaultCellContentPadding = defaultCellContentPadding,
-                                showErrorCellBackground = showErrorCellBackground,
                                 columnCoords = columnCoords,
                                 focusedCellLocalBounds = focusedCellLocalBounds,
                             )
@@ -840,6 +852,7 @@ private fun ColumnHeader(
 private fun Cell(
     cell: Cell,
     row: Row,
+    header: Header,
     columnWidth: Dp,
     columnHeight: Dp,
     cellStyle: CellStyle,
@@ -850,14 +863,16 @@ private fun Cell(
     defaultCellContentPadding: PaddingValues,
     showErrorCellBackground: Boolean = false,
     cellBackgroundProvider: ((Cell) -> Color?)? = null,
-    onCellLongPress: ((Row)-> Unit)? = null,
-    onCellAction: ((CellAction)-> Unit)?,
-    columnCoords: androidx.compose.runtime.MutableState<LayoutCoordinates?>? = null,
-    focusedCellLocalBounds: androidx.compose.runtime.MutableState<Rect?>? = null,
+    onCellLongPress: ((Row) -> Unit)? = null,
+    onCellAction: ((CellAction) -> Unit)?,
+    columnCoords: MutableState<LayoutCoordinates?>? = null,
+    focusedCellLocalBounds: MutableState<Rect?>? = null,
 )
 {
     val isFocused = remember { mutableStateOf(false) }
     val cellCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    cell.attr.genericAttributes.putString(KEY_COLUMN_TITLE, header.title)
 
     Box(
         modifier = Modifier

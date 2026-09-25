@@ -4,6 +4,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -17,12 +18,11 @@ data class ChipStyle(
     val borderColor: Color,
     val selectedBorderColor: Color,
     val borderWidth: Dp = 1.dp,
+    val shape: Shape,
 ) {
     companion object {
         @Composable
         fun default(): ChipStyle {
-            val colors = FilterChipDefaults.filterChipColors()
-            val border = FilterChipDefaults.filterChipBorder(enabled = true, selected = false)
             return ChipStyle(
                 containerColor = Color.Transparent,
                 selectedContainerColor = Color.Transparent,
@@ -31,6 +31,7 @@ data class ChipStyle(
                 checkmarkColor = Color.Unspecified,
                 borderColor = Color.Unspecified,
                 selectedBorderColor = Color.Unspecified,
+                shape = FilterChipDefaults.shape,
             )
         }
     }

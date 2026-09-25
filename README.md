@@ -95,6 +95,7 @@ data class ChipStyle(
     val borderColor: Color,
     val selectedBorderColor: Color,
     val borderWidth: Dp = 1.dp,
+    val shape: Shape = FilterChipDefaults.shape,
 )
 ```
 

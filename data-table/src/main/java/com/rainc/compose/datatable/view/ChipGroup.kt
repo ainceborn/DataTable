@@ -96,6 +96,7 @@ private fun <T: Serializable> DefaultChipView(
             selectedBorderColor = chipStyle?.selectedBorderColor ?: primary,
             borderWidth = chipStyle?.borderWidth ?: 1.dp,
             selectedBorderWidth = chipStyle?.borderWidth ?: 1.dp,
-        )
+        ),
+        shape = chipStyle?.shape ?: FilterChipDefaults.shape
     )
 }
